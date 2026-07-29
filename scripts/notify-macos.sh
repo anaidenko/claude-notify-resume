@@ -55,7 +55,15 @@ elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # embedded in an AppleScript string literal, which needs its own escaping —
     # skip that and any cwd containing a space produces `\ `, on which
     # AppleScript fails with a syntax error and the click silently does nothing.
-    RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
+    # The click can land long after the banner was sent, by which time the
+    # folder may be renamed, unmounted or (for a temporary dir) cleaned up.
+    # Check inside the command rather than letting `cd` fail with a bare
+    # "no such file or directory" in a freshly opened window.
+    # No quotes in the fallback message: this string is nested inside an
+    # AppleScript literal which is itself inside the single-quoted -execute
+    # argument, so either quote character would terminate a layer early.
+    QUOTED_CWD="$(printf '%q' "$CWD")"
+    RESUME="cd $QUOTED_CWD 2>/dev/null && claude --resume $(printf '%q' "$SESSION_ID") || echo claude-code-notify:\\ that\\ session\\ folder\\ no\\ longer\\ exists"
     ARGS+=(-execute "osascript -e 'tell application \"Terminal\" to do script \"$(applescript_escape "$RESUME")\"' -e 'tell application \"Terminal\" to activate'")
 fi
 
