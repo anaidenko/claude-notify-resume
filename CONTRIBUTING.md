@@ -57,6 +57,19 @@ they are worth stating plainly:
   existing install into a new, unapproved sender whose banners vanish with no
   error and a success exit code. Don't change it.
 
+## Releasing
+
+Claude Code caches an installed plugin in a directory named after its version,
+so **bumping `version` in `.claude-plugin/plugin.json` is what makes an update
+reachable** — push alone leaves existing installs on the cached copy.
+
+1. Bump `version` in `.claude-plugin/plugin.json` (semver).
+2. Commit and push; tag the release (`git tag v1.1.0 && git push --tags`).
+3. Users pick it up with `/plugin update claude-code-notify`.
+
+That field is the only place a version lives — `package.json` deliberately has
+none, so the two cannot drift.
+
 ## Style
 
 Match the surrounding code: 4-space indent in shell, `set -uo pipefail`,
