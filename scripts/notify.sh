@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desktop notification hook for Claude Code.
 #
-# The banner leads with the status ("Completed") and carries the chat's own
+# The banner leads with the status ("Replied") and carries the chat's own
 # AI-generated name as its body, so parallel sessions stay distinguishable.
 # On macOS, clicking it reopens that exact conversation via `claude --resume`.
 #
@@ -11,7 +11,7 @@ set -uo pipefail
 STATUS="${1:-Claude Code}"
 
 # Set CLAUDE_NOTIFY_TEST=1 to mark a banner as a manual test, so a real
-# "Completed" is never mistaken for one while debugging.
+# notification is never mistaken for one while debugging.
 #
 # No brackets in the marker: a -title beginning with "[" is swallowed by
 # terminal-notifier, which then falls back to its default title of "Terminal".
@@ -54,7 +54,6 @@ fi
 case "$(uname -s)" in
     Darwin) "$PLUGIN_ROOT/scripts/notify-macos.sh" "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" ;;
     Linux) "$PLUGIN_ROOT/scripts/notify-linux.sh" "$STATUS" "$CHAT" ;;
-    MINGW* | MSYS* | CYGWIN*) "$PLUGIN_ROOT/scripts/notify-windows.sh" "$STATUS" "$CHAT" ;;
 esac
 
 exit 0

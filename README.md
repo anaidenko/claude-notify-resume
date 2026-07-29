@@ -5,7 +5,7 @@ tell you **which conversation** finished — and take you back into it.
 
 ```
 ┌────────────────────────────────────────────────┐
-│  ✳  Completed                                  │
+│  ✳  Replied                                    │
 │     Fix the geofence rounding bug              │
 └────────────────────────────────────────────────┘
 ```
@@ -28,6 +28,20 @@ directory, or the git branch. Two things here work differently:
 
 Both matter most in exactly the case that breaks other tools: many parallel
 sessions across several repos.
+
+The status also says what actually happened, rather than lumping every event
+under one word:
+
+| Status | Fires when |
+| --- | --- |
+| `Replied` | Claude finished responding — every turn, *not* "task complete" |
+| `Permission needed` | A tool call is waiting for your approval |
+| `Waiting for you` | Claude is idle, awaiting your next prompt |
+| `Input needed` | An MCP server opened an elicitation form |
+| `Background agent needs you` / `finished` | A background session wants input, or ended |
+
+Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
+`elicitation_response` — they announce things you just watched happen.
 
 ## Install
 
@@ -57,13 +71,24 @@ discards its banners with no error and a success exit code.
 | Platform | Status | Notes |
 | --- | --- | --- |
 | macOS | Supported, in daily use | `terminal-notifier`; icon + click-to-resume via a generated `.app` |
-| Linux | **Untested** | `notify-send`; no click action |
-| Windows | **Untested** | PowerShell + BurntToast; no click action |
+| Linux | Supported | `notify-send`; no click action |
+| Windows | Not supported | PRs welcome |
 
-The Linux and Windows paths are written against each tool's documented
-interface but have not been exercised on those platforms — reports and fixes
-are welcome. Every path fails silently by design: a notification must never
-break your session.
+Every path fails silently by design: a notification must never break your
+session — if the notifier is missing or the payload is malformed, the hook
+exits 0 and says nothing.
+
+The Linux path is covered by a container test suite:
+
+```bash
+docker build -t claude-notify-test -f test/Dockerfile .
+docker run --rm claude-notify-test
+```
+
+A container has no notification daemon, so no banner can appear there. What the
+suite does verify is everything up to the D-Bus call: transcript parsing, the
+chat name, platform dispatch, the arguments `notify-send` receives, and that
+every failure path still exits 0 — including when libnotify is not installed.
 
 ## How it works
 

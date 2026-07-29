@@ -66,6 +66,12 @@ cat >"$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>claude.icns</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <!-- Ask for alerts, which stay on screen until dismissed, rather than
+         banners that vanish after ~5s — the whole point is to catch you while
+         you are looking elsewhere. macOS honours this only when it first
+         registers the bundle; afterwards the user's System Settings choice
+         wins. -->
+    <key>NSUserNotificationAlertStyle</key><string>alert</string>
 </dict>
 </plist>
 PLIST
@@ -99,6 +105,8 @@ fi
 printf '\n  ! One manual step: System Settings → Notifications → "Claude Code"\n'
 printf '    → turn ON "Allow notifications". A new app starts switched off, and\n'
 printf '    macOS then discards its banners with no error and exit code 0.\n'
+printf '    While you are there, set the style to "Alerts" so notifications stay\n'
+printf '    on screen instead of vanishing after a few seconds.\n'
 printf '    Open it with:  open "x-apple.systempreferences:com.apple.preference.notifications"\n'
 
 terminal-notifier -title "TEST · Notifications are on" \

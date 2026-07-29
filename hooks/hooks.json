@@ -2,10 +2,47 @@
     "hooks": {
         "Notification": [
             {
+                "matcher": "permission_prompt",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Permission needed\""
+                    }
+                ]
+            },
+            {
+                "matcher": "idle_prompt",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Waiting for you\""
+                    }
+                ]
+            },
+            {
+                "matcher": "elicitation_dialog",
                 "hooks": [
                     {
                         "type": "command",
                         "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Input needed\""
+                    }
+                ]
+            },
+            {
+                "matcher": "agent_needs_input",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent needs you\""
+                    }
+                ]
+            },
+            {
+                "matcher": "agent_completed",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent finished\""
                     }
                 ]
             }
@@ -15,7 +52,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Completed\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Replied\""
                     }
                 ]
             }
