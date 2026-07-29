@@ -56,9 +56,10 @@ if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
     # the resume command on the clipboard rather than pretending otherwise.
     # `code` is installed by "Shell Command: Install 'code' command in PATH".
     if command -v code >/dev/null 2>&1; then
-        # VS Code focuses an existing window for this folder; -n avoids hijacking
-        # an unrelated window when the folder is not open anywhere.
-        code --new-window "$CWD" >/dev/null 2>&1
+        # No flag: VS Code raises the window already holding this folder, and
+        # opens a new one only when none has it. -n would always create a new
+        # window; -r would hijack whichever window was last active.
+        code "$CWD" >/dev/null 2>&1
         printf '%s' "$RESUME" | pbcopy 2>/dev/null
         notify "Session opened in VS Code" "Resume command copied — paste it into the terminal." "Glass"
         exit 0
