@@ -13,6 +13,12 @@ SESSION_ID="${1:-}"
 CWD="${2:-}"
 [ -n "$SESSION_ID" ] && [ -n "$CWD" ] || exit 0
 
+# A click runs with a minimal PATH — the same trap notify.sh works around.
+# Without this, `code` and `terminal-notifier` are both missing and the handler
+# reports them as "not installed" on a machine where they plainly are.
+PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+export PATH
+
 RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
 # Marks the tab so a later click can find it instead of opening a duplicate.
 TAB_TITLE="claude:$SESSION_ID"
