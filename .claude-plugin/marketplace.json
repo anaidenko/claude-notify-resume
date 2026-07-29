@@ -1,0 +1,15 @@
+{
+    "name": "anaidenko",
+    "description": "Claude Code plugins by Andrii Naidenko.",
+    "owner": {
+        "name": "Andrii Naidenko",
+        "url": "https://github.com/anaidenko"
+    },
+    "plugins": [
+        {
+            "name": "claude-code-notify",
+            "source": "./",
+            "description": "Desktop notifications that name the conversation they came from — and reopen it when clicked."
+        }
+    ]
+}
