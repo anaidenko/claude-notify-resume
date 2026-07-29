@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Linux banner via notify-send (libnotify).
 #
-# UNVERIFIED: written from the notify-send interface, not exercised on a Linux
-# desktop. Click-to-resume is deliberately omitted — notify-send has no portable
-# click action, and the notification daemon varies by desktop environment.
+# Verified against a real notification daemon over D-Bus (test/dbus-suite.sh),
+# though not yet on a physical Linux desktop. Click-to-resume is deliberately
+# omitted — notify-send has no portable click action, and the notification
+# daemon varies by desktop environment.
 set -uo pipefail
 
 STATUS="$1"
@@ -13,7 +14,18 @@ CHAT="$2"
 # without notify.sh having set up PATH.
 [ -n "${CLAUDE_NOTIFY_BIN:-}" ] && PATH="$CLAUDE_NOTIFY_BIN:$PATH" && export PATH
 
-command -v notify-send >/dev/null 2>&1 || exit 0
+# Without libnotify nothing can be delivered, and silence looks identical to a
+# broken plugin. Say so once — a hook that printed on every turn would be worse
+# than the problem it reports.
+if ! command -v notify-send >/dev/null 2>&1; then
+    NOTICE="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code-notify/missing-libnotify"
+    if [ ! -f "$NOTICE" ]; then
+        mkdir -p "$(dirname "$NOTICE")" 2>/dev/null &&
+            : >"$NOTICE" 2>/dev/null &&
+            printf 'claude-code-notify: notify-send not found, so no banners will appear.\n  Install libnotify:  sudo apt install libnotify-bin   (or your distro'\''s package)\n  This notice is shown once.\n' >&2
+    fi
+    exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ICON="$(dirname "$SCRIPT_DIR")/assets/claude-logo.png"
