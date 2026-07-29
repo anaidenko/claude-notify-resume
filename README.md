@@ -111,6 +111,16 @@ record their arguments. What the suite verifies is everything up to that call:
 transcript parsing, the chat name, platform dispatch, the exact arguments
 `notify-send` receives, and that every failure path still exits 0.
 
+Delivery itself is covered separately, by a container running a real D-Bus
+session and a real notification daemon:
+
+```bash
+npm run test:dbus
+```
+
+It reads back what the daemon received — app name, icon path, title and body —
+so "the icon reaches the desktop" is an assertion rather than an assumption.
+
 Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**.
 
 ## How it works

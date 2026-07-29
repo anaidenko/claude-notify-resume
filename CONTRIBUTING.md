@@ -8,8 +8,17 @@ plus one Node file, no dependencies, no build step.
 ```bash
 npm test              # native suite for your platform
 npm run test:all      # + other platforms, where possible (Docker)
+npm run test:dbus     # end-to-end Linux delivery, real D-Bus + daemon
 npm run lint          # shellcheck
 ```
+
+Three suites, in increasing order of what they prove:
+
+| Suite | Proves |
+| --- | --- |
+| `test:macos` / `linux-suite.sh` | the script builds the right notifier command |
+| `test:dbus` | a real notification daemon *receives* the title, body and icon |
+| `notify:demo` | a human sees the banner (the only thing automation cannot check) |
 
 Neither suite needs the plugin installed — they run the scripts straight out of
 the repo. Neither one delivers a real notification either: `terminal-notifier`,
@@ -37,6 +46,25 @@ path for.
   macOS machine, and shipping untested platform code seemed worse than shipping
   none. A tested PowerShell path (BurntToast or a native toast) is the single
   biggest gap.
+
+    Since the maintainer cannot run Windows, a PR adding it has to carry its own
+    evidence. Please include:
+
+    1. **A screenshot of the actual notification**, showing the status as the
+       title and the chat name as the body.
+    2. **Your environment** — Windows version, PowerShell version, and whether
+       you used BurntToast or a native toast API.
+    3. **A test suite** in the shape of the existing ones (`test/*-suite.sh`
+       stub the notifier and assert on its arguments), plus the output of
+       running it.
+    4. **Confirmation that every failure path exits 0** — no notifier
+       installed, malformed payload, empty stdin. This is the one rule above,
+       and it is what protects users from a broken hook.
+
+    Without a Windows machine to check against, that evidence is what makes the
+    difference between merging and leaving the PR open. A patch that only
+    *looks* correct will not be merged — that is the same standard the Linux
+    path was held to.
 - **Other Linux distros and desktop environments.** The suite covers Debian and
   Ubuntu; `notify-send` behaviour varies with the notification daemon, so
   reports from KDE, GNOME on Wayland, and others are useful.

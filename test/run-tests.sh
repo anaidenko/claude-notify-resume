@@ -25,6 +25,10 @@ case "$(uname -s)" in
         if [ "$ALL" -eq 1 ]; then
             printf '\n═══ Linux (Docker)\n'
             ./test/run-linux-tests.sh || exit 1
+
+            printf '\n═══ Linux delivery, real D-Bus + daemon (Docker)\n'
+            docker build -q -t claude-notify-dbus -f test/Dockerfile.dbus . >/dev/null &&
+                docker run --rm claude-notify-dbus || exit 1
         else
             printf 'Linux suites skipped — run with --all (needs Docker), or npm run test:linux\n\n'
         fi

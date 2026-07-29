@@ -1,0 +1,22 @@
+# End-to-end delivery harness: a real D-Bus session plus a real notification
+# daemon, so the suite can read back what the desktop actually received.
+#
+#   docker build -t claude-notify-dbus -f test/Dockerfile.dbus .
+#   docker run --rm claude-notify-dbus
+#
+# Heavier than test/Dockerfile (~200MB more, and it starts services), which is
+# why it is a separate image rather than the default one.
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        nodejs libnotify-bin dbus-x11 xvfb notification-daemon ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /plugin
+COPY scripts/ ./scripts/
+COPY assets/ ./assets/
+COPY test/dbus-suite.sh ./test/
+RUN chmod +x scripts/*.sh test/*.sh
+
+ENTRYPOINT ["./test/dbus-suite.sh"]
