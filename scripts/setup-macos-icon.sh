@@ -83,7 +83,16 @@ STATE="${CLAUDE_NOTIFY_STATE_DIR:-$HOME/.claude/claude-code-notify}/last-session
 [ -f "$STATE" ] || exit 0
 SESSION_ID="$(sed -n 1p "$STATE")"
 CWD="$(sed -n 2p "$STATE")"
-[ -n "$SESSION_ID" ] && [ -d "$CWD" ] || exit 0
+[ -n "$SESSION_ID" ] || exit 0
+
+# The recorded folder can be gone — renamed, unmounted, or a temporary dir that
+# has since been cleaned up. Say so: a click that silently does nothing reads as
+# a broken plugin, and opening a terminal on a missing path is worse still.
+if [ ! -d "$CWD" ]; then
+    MSG="$(printf '%s' "$CWD" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+    osascript -e "display notification \"$MSG\" with title \"Session folder is gone\" sound name \"Basso\"" >/dev/null 2>&1
+    exit 0
+fi
 # %q quotes for the shell that ultimately runs this; the result then sits
 # inside an AppleScript string literal, which only accepts \\ and \" — without
 # this second pass a cwd containing a space yields `\ ` and AppleScript fails.
