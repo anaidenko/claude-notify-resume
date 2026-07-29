@@ -29,7 +29,7 @@ use `npm run notify:demo`.
 Add a distro by passing it through:
 
 ```bash
-./test/run-linux-tests.sh fedora:41
+./test/run-linux-tests.sh debian:trixie-slim
 ```
 
 ## The one rule

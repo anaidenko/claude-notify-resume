@@ -35,7 +35,7 @@ trap 'rm -rf "$STUB_BIN"; rm -f "$TRANSCRIPT"' EXIT
 # Run a dispatch with the stubs in front, and print what got "sent".
 capture() {
     : >"$STUB_LOG"
-    env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$@" >/dev/null 2>&1
+    env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" "$@" >/dev/null 2>&1
     cat "$STUB_LOG"
 }
 
@@ -93,31 +93,77 @@ contains "chat name becomes the body" "Fix the geofence rounding bug"  "$SENT"
 # A title beginning with "[" is swallowed by terminal-notifier, which then
 # falls back to its own default of "Terminal" — hence the TEST · marker.
 : >"$STUB_LOG"
-payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_TEST=1 "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" CLAUDE_NOTIFY_TEST=1 "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 contains "test marker carries no brackets" "TEST · Replied" "$(cat "$STUB_LOG")"
 
 printf '\nRobustness\n'
 
-payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 on a normal payload" "0" "$?"
 
-printf 'not json' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+printf 'not json' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 on malformed payload" "0" "$?"
 
-printf '' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+printf '' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 on empty stdin" "0" "$?"
 
 # With terminal-notifier gone the AppleScript fallback must take over, so stub
-# only osascript here and leave terminal-notifier genuinely absent.
+# only osascript here and leave terminal-notifier genuinely absent. Write the
+# stub fresh rather than sed-ing a copy: `sed -i ''` is BSD-only and breaks
+# outright when GNU sed is first on PATH.
 FALLBACK_BIN="$(mktemp -d)"
-cp "$STUB_BIN/osascript" "$FALLBACK_BIN/osascript"
-sed -i '' "s|$STUB_LOG|$FALLBACK_BIN/calls.log|" "$FALLBACK_BIN/osascript"
+FALLBACK_LOG="$FALLBACK_BIN/calls.log"
+cat >"$FALLBACK_BIN/osascript" <<STUB
+#!/bin/bash
+printf 'osascript' >>"$FALLBACK_LOG"
+for arg in "\$@"; do printf ' %s' "\$arg" >>"$FALLBACK_LOG"; done
+printf '\n' >>"$FALLBACK_LOG"
+exit 0
+STUB
+chmod +x "$FALLBACK_BIN/osascript"
 PATH="$FALLBACK_BIN:/usr/bin:/bin" "$REPO_ROOT/scripts/notify-macos.sh" \
     "Replied" 'A title with "quotes"' "s1" "$REPO_ROOT" >/dev/null 2>&1
-SENT="$(cat "$FALLBACK_BIN/calls.log" 2>/dev/null)"
+SENT="$(cat "$FALLBACK_LOG" 2>/dev/null)"
 rm -rf "$FALLBACK_BIN"
 contains "falls back to AppleScript"      "osascript"     "$SENT"
 contains "escapes quotes for AppleScript" '\"quotes\"'    "$SENT"
+
+# A cwd with a space used to produce `\ ` from printf %q, which AppleScript
+# rejects outright — the click then silently did nothing. Assert the generated
+# script is valid AppleScript rather than merely non-empty.
+# Force the -execute branch by pointing STATE_DIR somewhere with no bundle,
+# so this assertion holds whether or not the developer installed the icon.
+SPACED_PARENT="$(mktemp -d)"
+SPACED_DIR="$SPACED_PARENT/My Test Project"
+mkdir -p "$SPACED_DIR"
+: >"$STUB_LOG"
+env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$SPACED_PARENT/state" \
+    "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$SPACED_DIR" >/dev/null 2>&1
+SENT="$(cat "$STUB_LOG")"
+rm -rf "$SPACED_PARENT"
+
+# Extract the AppleScript the click would run, and check macOS can parse it.
+APPLESCRIPT="$(printf '%s' "$SENT" | sed -n "s/.*-execute osascript -e '\([^']*\)'.*/\1/p")"
+if [ -z "$APPLESCRIPT" ]; then
+    printf '  FAIL  no -execute argument was produced\n        %s\n' "$SENT"
+    FAIL=$((FAIL + 1))
+elif osascript -e "$APPLESCRIPT" -e 'return "ok"' >/dev/null 2>&1; then
+    printf '  ok    a cwd with spaces yields valid AppleScript\n'
+    PASS=$((PASS + 1))
+else
+    ERR="$(osascript -e "$APPLESCRIPT" 2>&1 | head -1)"
+    case "$ERR" in
+        *"syntax error"*)
+            printf '  FAIL  a cwd with spaces breaks the click\n        %s\n' "$ERR"
+            FAIL=$((FAIL + 1))
+            ;;
+        *)
+            # Anything else means it parsed — e.g. Terminal declined to open.
+            printf '  ok    a cwd with spaces yields valid AppleScript\n'
+            PASS=$((PASS + 1))
+            ;;
+    esac
+fi
 
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

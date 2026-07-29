@@ -24,10 +24,17 @@ STATUS="${1:-Claude Code}"
 # ones. Without it a test run would deliver actual banners, since the Homebrew
 # path below deliberately outranks whatever the caller had on PATH.
 PATH="${CLAUDE_NOTIFY_BIN:+$CLAUDE_NOTIFY_BIN:}/opt/homebrew/bin:/usr/local/bin:$PATH"
-if ! command -v node >/dev/null 2>&1; then
-    for candidate in "$HOME"/.nvm/versions/node/*/bin; do
-        [ -x "$candidate/node" ] && PATH="$candidate:$PATH"
-    done
+# nvm installs are version-stamped. Pick the highest version rather than
+# whichever the glob yields last: plain sorting puts v9 after v22, and this
+# project's JS uses syntax an old Node rejects outright.
+if ! command -v node >/dev/null 2>&1 && [ -d "$HOME/.nvm/versions/node" ]; then
+    newest="$(
+        for candidate in "$HOME"/.nvm/versions/node/v*/bin/node; do
+            [ -x "$candidate" ] && printf '%s\n' "$candidate"
+        done | sed 's|.*/node/v||; s|/bin/node$||' |
+            sort -t. -k1,1n -k2,2n -k3,3n | tail -1
+    )"
+    [ -n "$newest" ] && PATH="$HOME/.nvm/versions/node/v$newest/bin:$PATH"
 fi
 export PATH
 

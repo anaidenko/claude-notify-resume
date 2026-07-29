@@ -103,7 +103,7 @@ the Linux path gets exercised at all:
 ```bash
 ./test/run-linux-tests.sh                 # Debian + Ubuntu
 ./test/run-linux-tests.sh ubuntu:24.04    # one distro
-./test/run-linux-tests.sh fedora:41       # or any other apt base
+./test/run-linux-tests.sh debian:trixie-slim   # or any other apt-based image
 ```
 
 No banner is ever delivered — the notifier binaries are shadowed by stubs that
@@ -149,8 +149,9 @@ click, so the bundle performs the resume itself.
 | `scripts/notify.sh` | Parses the payload, resolves the chat name, dispatches per platform |
 | `scripts/notify-parse.js` | Reads the payload + `ai-title` from the transcript |
 | `scripts/notify-macos.sh` | Builds and sends the macOS banner |
+| `scripts/notify-linux.sh` | Builds and sends the Linux banner |
 | `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
-| `test/run-linux-tests.sh` | Runs the suite across distros (Docker) |
+| `test/run-tests.sh` | Picks the suite matching your platform |
 
 To fire a banner by hand while debugging, set `CLAUDE_NOTIFY_TEST=1` so it is
 prefixed `TEST ·` and never mistaken for a real one:

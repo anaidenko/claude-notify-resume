@@ -12,17 +12,22 @@ CWD="${4:--}"
 # without notify.sh having set up PATH.
 [ -n "${CLAUDE_NOTIFY_BIN:-}" ] && PATH="$CLAUDE_NOTIFY_BIN:$PATH" && export PATH
 
+# Escape a value for embedding in an AppleScript double-quoted string.
+# AppleScript only understands \\ and \" — it hard-errors on anything else,
+# notably the `\ ` that `printf %q` produces for a space.
+applescript_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
 # Fall back to AppleScript when terminal-notifier is absent, so the plugin
 # works on a bare macOS with nothing installed. The trade-off: `display
 # notification` shows the host app's icon (Script Editor) and supports no click
 # action, so terminal-notifier remains the better path when available.
 if ! command -v terminal-notifier >/dev/null 2>&1; then
-    escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-    osascript -e "display notification \"$(escape "$CHAT")\" with title \"$(escape "$STATUS")\" sound name \"Glass\"" >/dev/null 2>&1 || true
+    osascript -e "display notification \"$(applescript_escape "$CHAT")\" with title \"$(applescript_escape "$STATUS")\" sound name \"Glass\"" >/dev/null 2>&1 || true
     exit 0
 fi
 
-STATE_DIR="$HOME/.claude/claude-code-notify"
+# Overridable so the test suite never writes to the real user's state.
+STATE_DIR="${CLAUDE_NOTIFY_STATE_DIR:-$HOME/.claude/claude-code-notify}"
 APP="$STATE_DIR/Claude Code.app"
 BUNDLE_ID="com.claude-code.notify"
 
@@ -35,13 +40,23 @@ if [ -d "$APP" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # The bundle exists purely to own the banner's left-hand icon (macOS takes
     # it from the sending app). -sender also takes over the click, so the bundle
     # performs the resume itself, reading the session from this state file.
+    # Write-then-rename: a click landing mid-write would otherwise read a
+    # half-written file and silently do nothing.
     mkdir -p "$STATE_DIR"
-    printf '%s\n%s\n' "$SESSION_ID" "$CWD" >"$STATE_DIR/last-session" 2>/dev/null
+    if printf '%s\n%s\n' "$SESSION_ID" "$CWD" >"$STATE_DIR/last-session.tmp" 2>/dev/null; then
+        mv -f "$STATE_DIR/last-session.tmp" "$STATE_DIR/last-session" 2>/dev/null
+    fi
     ARGS+=(-sender "$BUNDLE_ID")
 elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # No bundle: no custom icon, but -execute makes the click exact.
+    #
+    # Two layers of quoting, and they are not interchangeable. `printf %q`
+    # protects the value for the shell that finally runs it; the result is then
+    # embedded in an AppleScript string literal, which needs its own escaping —
+    # skip that and any cwd containing a space produces `\ `, on which
+    # AppleScript fails with a syntax error and the click silently does nothing.
     RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
-    ARGS+=(-execute "osascript -e 'tell application \"Terminal\" to do script \"${RESUME//\"/\\\"}\"' -e 'tell application \"Terminal\" to activate'")
+    ARGS+=(-execute "osascript -e 'tell application \"Terminal\" to do script \"$(applescript_escape "$RESUME")\"' -e 'tell application \"Terminal\" to activate'")
 fi
 
 terminal-notifier "${ARGS[@]}" >/dev/null 2>&1 || true

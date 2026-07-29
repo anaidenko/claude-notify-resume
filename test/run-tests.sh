@@ -37,6 +37,7 @@ case "$(uname -s)" in
     Linux)
         # No Docker needed: this *is* Linux, and the suite runs against the
         # distro's own notify-send rather than a container's.
+        # shellcheck disable=SC1091  # /etc/os-release exists at runtime, not here
         printf '═══ Linux (host: %s)\n' "$(. /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-unknown}")"
         ./test/linux-suite.sh || exit 1
 

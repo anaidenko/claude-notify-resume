@@ -79,13 +79,18 @@ PLIST
 cat >"$APP/Contents/MacOS/claude-notify" <<'SH'
 #!/bin/bash
 # Clicking a banner launches this; it reopens the chat recorded by notify.sh.
-STATE="$HOME/.claude/claude-code-notify/last-session"
+STATE="${CLAUDE_NOTIFY_STATE_DIR:-$HOME/.claude/claude-code-notify}/last-session"
 [ -f "$STATE" ] || exit 0
 SESSION_ID="$(sed -n 1p "$STATE")"
 CWD="$(sed -n 2p "$STATE")"
 [ -n "$SESSION_ID" ] && [ -d "$CWD" ] || exit 0
+# %q quotes for the shell that ultimately runs this; the result then sits
+# inside an AppleScript string literal, which only accepts \\ and \" — without
+# this second pass a cwd containing a space yields `\ ` and AppleScript fails.
+RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
+RESUME_ESCAPED="$(printf '%s' "$RESUME" | sed 's/\\/\\\\/g; s/"/\\"/g')"
 osascript \
-    -e "tell application \"Terminal\" to do script \"cd $(printf '%q' "$CWD") && claude --resume $SESSION_ID\"" \
+    -e "tell application \"Terminal\" to do script \"$RESUME_ESCAPED\"" \
     -e 'tell application "Terminal" to activate'
 SH
 chmod +x "$APP/Contents/MacOS/claude-notify"
