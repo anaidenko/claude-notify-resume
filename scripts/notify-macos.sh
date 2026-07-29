@@ -36,12 +36,16 @@ ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
 # -group collapses repeat banners from one chat instead of stacking them.
 [ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
 
-if [ -d "$APP" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
-    # The bundle exists purely to own the banner's left-hand icon (macOS takes
-    # it from the sending app). -sender also takes over the click, so the bundle
-    # performs the resume itself, reading the session from this state file.
-    # Write-then-rename: a click landing mid-write would otherwise read a
-    # half-written file and silently do nothing.
+# The icon and a clickable banner body are mutually exclusive, and the icon is
+# NOT the default: -sender gives the banner the Claude icon but takes the click
+# with it, leaving only the "Show" action button (verified — -execute is ignored
+# whenever -sender is present). Losing a click most people expect to work is the
+# worse trade, so the bundle alone is not enough: opting in takes
+# CLAUDE_NOTIFY_ICON=1 as well.
+if [ -d "$APP" ] && [ "${CLAUDE_NOTIFY_ICON:-}" = "1" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
+    # -sender routes the click to the bundle, which resumes the session by
+    # reading this state file. Write-then-rename: a click landing mid-write
+    # would otherwise read a half-written file and silently do nothing.
     mkdir -p "$STATE_DIR"
     if printf '%s\n%s\n' "$SESSION_ID" "$CWD" >"$STATE_DIR/last-session.tmp" 2>/dev/null; then
         mv -f "$STATE_DIR/last-session.tmp" "$STATE_DIR/last-session" 2>/dev/null

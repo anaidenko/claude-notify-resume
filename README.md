@@ -5,7 +5,8 @@ tell you **which conversation** finished — and take you back into it.
 
 <img src="assets/banner-permission-needed.png" alt="A macOS notification titled &quot;Permission needed&quot;, with the body &quot;Migrate the auth service to OAuth&quot; — the name of the chat that is waiting." width="500">
 
-*The body is the chat's own name, so you know which session is asking.*
+*The body is the chat's own name, so you know which session is asking.
+(Shown with the optional icon enabled — see [the trade-off](#the-icon-costs-you-the-click).)*
 
 Run several Claude sessions at once and the usual notification is useless: five
 identical banners saying "Claude Code is done", with no clue which repo, which
@@ -49,14 +50,20 @@ Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 
 Restart Claude Code — hook config is read at startup.
 
-**macOS** works out of the box via AppleScript. For the Claude icon and
-click-to-resume, install the notifier binary and build the icon bundle:
+**macOS** works out of the box via AppleScript. For click-to-resume, install
+the notifier binary:
 
 ```bash
 brew install terminal-notifier
+```
 
-# Optional: gives the banner the Claude icon, and enables click-to-resume
+That alone gives you click-to-resume on the whole banner. If you would rather
+have the Claude icon and accept that only the **Show** button resumes, build
+the icon bundle and opt in:
+
+```bash
 ~/.claude/plugins/cache/anaidenko/claude-code-notify/*/scripts/setup-macos-icon.sh
+export CLAUDE_NOTIFY_ICON=1
 ```
 
 That script ends by sending a test banner. **If you do not see it**, open
@@ -64,16 +71,11 @@ That script ends by sending a test banner. **If you do not see it**, open
 notifications*: a newly created bundle starts switched off, and macOS then
 discards its banners with no error and a success exit code.
 
-The icon bundle is a genuine trade-off, not a pure upgrade: it makes clicking
-an *older* banner open whichever session notified most recently. Skip it and
-every click is exact, at the cost of the icon — see
-[Known limitation](#known-limitation).
-
 ## Platform support
 
 | Platform | Status | Notes |
 | --- | --- | --- |
-| macOS | Supported, in daily use | AppleScript out of the box; `terminal-notifier` adds the icon + click-to-resume |
+| macOS | Supported, in daily use | AppleScript out of the box; `terminal-notifier` adds click-to-resume, and optionally the icon |
 | Linux | Supported | `notify-send`; tested on Debian + Ubuntu; no click action |
 | Windows | Not supported | PRs welcome |
 
@@ -137,8 +139,9 @@ falls back to the project directory name.
 On macOS the icon needs a detour: the banner's left-hand icon comes from the
 **sending application**, and `terminal-notifier`'s `-appIcon` / `-contentImage`
 do not affect that slot. So `setup-macos-icon.sh` generates a tiny `.app` that
-exists only to own the icon, and passes `-sender`. That flag also takes over the
-click, so the bundle performs the resume itself.
+exists only to own the icon, and passes `-sender`. That flag also swallows the
+click, which is why the icon is opt-in — see
+[the trade-off](#the-icon-costs-you-the-click).
 
 | File | Role |
 | --- | --- |
@@ -163,13 +166,27 @@ The marker is `TEST ·` rather than `[TEST]` on purpose: a `-title` starting wit
 default title of "Terminal" — the banner still shows, just not the title you
 passed.
 
-### Known limitation
+### The icon costs you the click
 
-With the icon bundle installed, the click target lives in a single state file
-that each notification overwrites. So with two sessions running, clicking an
-*older* banner opens whichever notified most recently. macOS does not tell the
-app which banner was clicked, so fixing this means dropping the custom icon —
-without the bundle, `-execute` makes every click exact.
+macOS will not give you both. `terminal-notifier`'s `-sender` is what puts the
+Claude icon on the banner, and it takes the click with it: with `-sender`
+present, `-execute` is ignored, clicking the banner *body* does nothing, and
+only the **Show** action button — which you have to hover to reveal — resumes
+the session. Verified directly; it is a platform constraint, not a bug here.
+
+So the icon is **opt-in**, and clicking works everywhere by default:
+
+```bash
+# Default: no custom icon, but the whole banner is clickable.
+# Opt into the icon, accepting that only "Show" will resume:
+export CLAUDE_NOTIFY_ICON=1
+```
+
+With the icon enabled there is a second cost: the click target lives in a
+single state file that each notification overwrites, so with two sessions
+running, clicking an *older* banner opens whichever notified most recently.
+macOS does not tell the app which banner was clicked. The `-execute` default
+has neither problem — every click is exact.
 
 ## Uninstall
 
