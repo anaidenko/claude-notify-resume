@@ -52,7 +52,8 @@ Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 
 Restart Claude Code — hook config is read at startup.
 
-**macOS** also needs the notifier binary, and optionally the icon bundle:
+**macOS** works out of the box via AppleScript. For the Claude icon and
+click-to-resume, install the notifier binary and build the icon bundle:
 
 ```bash
 brew install terminal-notifier
@@ -70,7 +71,7 @@ discards its banners with no error and a success exit code.
 
 | Platform | Status | Notes |
 | --- | --- | --- |
-| macOS | Supported, in daily use | `terminal-notifier`; icon + click-to-resume via a generated `.app` |
+| macOS | Supported, in daily use | AppleScript out of the box; `terminal-notifier` adds the icon + click-to-resume |
 | Linux | Supported | `notify-send`; no click action |
 | Windows | Not supported | PRs welcome |
 
@@ -119,11 +120,11 @@ click, so the bundle performs the resume itself.
 | `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
 
 To fire a banner by hand while debugging, set `CLAUDE_NOTIFY_TEST=1` so it is
-prefixed `[TEST]` and never mistaken for a real one:
+prefixed `TEST ·` and never mistaken for a real one:
 
 ```bash
 echo '{"session_id":"x","transcript_path":"","cwd":"'"$PWD"'"}' \
-  | CLAUDE_NOTIFY_TEST=1 scripts/notify.sh "Completed"
+  | CLAUDE_NOTIFY_TEST=1 scripts/notify.sh "Replied"
 ```
 
 The marker is `TEST ·` rather than `[TEST]` on purpose: a `-title` starting with

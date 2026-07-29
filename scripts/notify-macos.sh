@@ -8,7 +8,15 @@ CHAT="$2"
 SESSION_ID="${3:--}"
 CWD="${4:--}"
 
-command -v terminal-notifier >/dev/null 2>&1 || exit 0
+# Fall back to AppleScript when terminal-notifier is absent, so the plugin
+# works on a bare macOS with nothing installed. The trade-off: `display
+# notification` shows the host app's icon (Script Editor) and supports no click
+# action, so terminal-notifier remains the better path when available.
+if ! command -v terminal-notifier >/dev/null 2>&1; then
+    escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+    osascript -e "display notification \"$(escape "$CHAT")\" with title \"$(escape "$STATUS")\" sound name \"Glass\"" >/dev/null 2>&1 || true
+    exit 0
+fi
 
 STATE_DIR="$HOME/.claude/claude-code-notify"
 APP="$STATE_DIR/Claude Code.app"
