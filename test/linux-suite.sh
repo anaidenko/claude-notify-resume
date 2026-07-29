@@ -86,5 +86,19 @@ case "$ARGS" in
         ;;
 esac
 
+# A wrong icon path fails silently — the banner still shows, just plain — so
+# assert the flag explicitly rather than trusting the earlier check's success.
+case "$ARGS" in
+    *"--icon $PLUGIN_ROOT/assets/claude-logo.png"*)
+        printf '  ok    notify-send receives the icon path\n'
+        PASS=$((PASS + 1))
+        ;;
+    *)
+        printf '  FAIL  icon path missing or wrong\n        expected: --icon %s/assets/claude-logo.png\n        actual:   %s\n' \
+            "$PLUGIN_ROOT" "$ARGS"
+        FAIL=$((FAIL + 1))
+        ;;
+esac
+
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

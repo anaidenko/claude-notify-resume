@@ -67,6 +67,11 @@ That script ends by sending a test banner. **If you do not see it**, open
 notifications*: a newly created bundle starts switched off, and macOS then
 discards its banners with no error and a success exit code.
 
+The icon bundle is a genuine trade-off, not a pure upgrade: it makes clicking
+an *older* banner open whichever session notified most recently. Skip it and
+every click is exact, at the cost of the icon — see
+[Known limitation](#known-limitation).
+
 ## Platform support
 
 | Platform | Status | Notes |
@@ -80,9 +85,9 @@ session — if the notifier is missing or the payload is malformed, the hook
 exits 0 and says nothing.
 
 ```bash
-npm test              # Linux suites, in Docker (Debian + Ubuntu)
+npm test              # macOS suite, fast, no Docker
+npm run test:linux    # Linux suites, in Docker (Debian + Ubuntu)
 npm run test:ubuntu   # one distro
-npm run test:macos    # macOS suite, on the host
 npm run notify:demo   # send one real banner, marked "TEST ·"
 npm run lint          # shellcheck
 ```
@@ -104,7 +109,7 @@ suite does verify is everything up to the D-Bus call: transcript parsing, the
 chat name, platform dispatch, the arguments `notify-send` receives, and that
 every failure path still exits 0 — including when libnotify is not installed.
 
-Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**, 10/10 each.
+Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**.
 
 ## How it works
 
@@ -163,6 +168,12 @@ without the bundle, `-execute` makes every click exact.
 ```
 
 Then, if you built the icon bundle: `scripts/setup-macos-icon.sh remove`
+
+## Contributing
+
+Patches welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The most useful
+contribution is a **tested Windows path**, which is the one platform this could
+not be verified on.
 
 ## License
 

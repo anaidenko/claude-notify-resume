@@ -11,9 +11,15 @@ CHAT="$2"
 
 command -v notify-send >/dev/null 2>&1 || exit 0
 
-ICON_ARGS=()
-ICON="$(dirname "$(dirname "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")")/assets/claude-logo.png"
-[ -f "$ICON" ] && ICON_ARGS=(--icon "$ICON")
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ICON="$(dirname "$SCRIPT_DIR")/assets/claude-logo.png"
 
-notify-send "${ICON_ARGS[@]}" --app-name="Claude Code" "$STATUS" "$CHAT" >/dev/null 2>&1 || true
+# Build the whole argument list rather than a separate ICON_ARGS array: an
+# empty array expanded under `set -u` aborts on bash < 4.4, which is what
+# macOS still ships.
+ARGS=(--app-name="Claude Code")
+[ -f "$ICON" ] && ARGS+=(--icon "$ICON")
+ARGS+=("$STATUS" "$CHAT")
+
+notify-send "${ARGS[@]}" >/dev/null 2>&1 || true
 exit 0
