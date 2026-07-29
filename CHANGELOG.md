@@ -4,6 +4,28 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.0.2
+
+### Added
+
+- Clicking a banner now reopens the session in the app Claude Code is running
+  under — VS Code, iTerm or Terminal — detected automatically, overridable with
+  `CLAUDE_NOTIFY_TERMINAL`.
+- Terminal and iTerm reuse the tab already open for a session instead of
+  stacking up a new window per click.
+
+### Fixed
+
+- The Claude icon is now opt-in (`CLAUDE_NOTIFY_ICON=1`). `terminal-notifier`'s
+  `-sender` gives the banner its icon but swallows the click on the banner
+  body, leaving only the *Show* button; a working click is the better default.
+- A click landing on a folder that has since been renamed or deleted now says
+  so, instead of opening a terminal on a bare `cd` failure.
+- Notifications raised by the click handler go through `terminal-notifier`
+  where possible: a bare `osascript` notification is owned by Script Editor, so
+  clicking it opened Script Editor's file dialog.
+- A working directory containing an apostrophe no longer breaks the click.
+
 ## 1.0.1
 
 Fixes found in review before the first public release.

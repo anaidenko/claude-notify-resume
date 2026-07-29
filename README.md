@@ -150,6 +150,7 @@ click, which is why the icon is opt-in — see
 | `scripts/notify-parse.js` | Reads the payload + `ai-title` from the transcript |
 | `scripts/notify-macos.sh` | Builds and sends the macOS banner |
 | `scripts/notify-linux.sh` | Builds and sends the Linux banner |
+| `scripts/open-session.sh` | Reopens a session when a banner is clicked |
 | `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
 | `test/run-tests.sh` | Picks the suite matching your platform |
 
@@ -165,6 +166,21 @@ The marker is `TEST ·` rather than `[TEST]` on purpose: a `-title` starting wit
 `[` is swallowed by `terminal-notifier`, which silently falls back to its
 default title of "Terminal" — the banner still shows, just not the title you
 passed.
+
+### Where the session reopens
+
+Clicking a banner reopens the session in the app Claude Code is running under —
+VS Code, iTerm or Terminal — detected from the process tree when the
+notification is sent. Override it if the guess is wrong:
+
+```bash
+export CLAUDE_NOTIFY_TERMINAL=Terminal   # or iTerm, or vscode
+```
+
+Terminal and iTerm run `claude --resume` directly, and reuse the tab already
+open for that session instead of stacking up a window per click. VS Code has no
+scriptable terminal, so it opens the folder and copies the resume command to
+the clipboard for you to paste.
 
 ### The icon costs you the click
 

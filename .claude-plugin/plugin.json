@@ -1,6 +1,6 @@
 {
   "name": "claude-code-notify",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Desktop notifications that name the conversation they came from — and reopen it when clicked. Titles each banner with the chat's own AI-generated name, so parallel sessions stay distinguishable.",
   "author": {
     "name": "Andrii Naidenko",
@@ -12,17 +12,11 @@
   "keywords": [
     "claude-code",
     "claude-code-plugin",
+    "claude-code-hooks",
     "claude",
     "notifications",
     "desktop-notifications",
-    "hooks",
-    "notify",
-    "alerts",
     "macos",
-    "linux",
-    "developer-tools",
-    "productivity",
-    "parallel-sessions",
-    "session-management"
+    "linux"
   ]
 }

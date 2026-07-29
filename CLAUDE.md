@@ -31,6 +31,46 @@ do not "improve" error handling by surfacing errors to the user.
 - **`ai-title` is an internal transcript record, not a public API.** It is how
   the banner learns the chat's name. Keep the fallback to the project directory
   name working.
+- **`-sender` and a clickable banner body are mutually exclusive.** `-sender`
+  gives the banner the Claude icon and swallows the click: `-execute` is then
+  ignored and only the *Show* button resumes. Verified directly — it is a
+  platform constraint, which is why the icon is opt-in behind
+  `CLAUDE_NOTIFY_ICON=1`. `LSUIElement` and the alert style are *not* the cause;
+  both were investigated and cleared.
+- **Never build the click action by nesting quotes.** It once nested a shell
+  command inside an AppleScript literal inside a single-quoted `-execute` arg;
+  a space produced `\ ` and an apostrophe closed a layer early, both silently.
+  The click now calls `open-session.sh` with `printf %q` arguments — keep any
+  new logic in that script rather than growing the string again.
+- **`TERM_PROGRAM` is empty in the hook environment,** so the host app cannot be
+  detected at click time (by then the frontmost app is Notification Centre).
+  `notify-macos.sh` walks the process tree while the hook runs and passes
+  `CLAUDE_NOTIFY_HOST` through to the click.
+- **A bare `osascript` notification is owned by Script Editor** — clicking it
+  opens Script Editor's file dialog. Send user-facing notifications through
+  `terminal-notifier` when it is available (`notify()` in `open-session.sh`).
+- **Old banners carry the command that was current when they were sent.** A
+  banner sitting in Notification Centre still runs the *old* click action, so
+  clear them (`terminal-notifier -remove ALL`) before testing a change to it,
+  or you will debug a fix that is already in place.
+
+## Keeping this file honest
+
+When a change corrects a wrong assumption — especially one that took an
+experiment to settle — add it to the traps above in the same commit. The bar is
+"cost real time and is not visible in the code", not "might be interesting":
+this file earns its keep only if it stays short enough to read in full.
+
+Two habits that paid off repeatedly here, both worth continuing:
+
+- **Verify the test, not just the code.** After adding an assertion, break the
+  fix on purpose and confirm the test fails. Several "passing" tests here proved
+  vacuous — one asserted on a `sed` expression that mangled its own input,
+  another checked a branch the machine never took.
+- **Prefer an experiment to a plausible theory.** `LSUIElement`, the alert
+  style, and the notification style were all convincing explanations for the
+  click problem. All three were wrong; a two-minute test with `-execute` and no
+  `-sender` settled it.
 
 ## Verifying a change
 
