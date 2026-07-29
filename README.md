@@ -72,24 +72,28 @@ discards its banners with no error and a success exit code.
 | Platform | Status | Notes |
 | --- | --- | --- |
 | macOS | Supported, in daily use | AppleScript out of the box; `terminal-notifier` adds the icon + click-to-resume |
-| Linux | Supported | `notify-send`; no click action |
+| Linux | Supported | `notify-send`; tested on Debian + Ubuntu; no click action |
 | Windows | Not supported | PRs welcome |
 
 Every path fails silently by design: a notification must never break your
 session — if the notifier is missing or the payload is malformed, the hook
 exits 0 and says nothing.
 
-The Linux path is covered by a container test suite:
+The Linux path is covered by a container test suite, run against every
+supported distro:
 
 ```bash
-docker build -t claude-notify-test -f test/Dockerfile .
-docker run --rm claude-notify-test
+./test/run-linux-tests.sh                 # Debian + Ubuntu
+./test/run-linux-tests.sh ubuntu:24.04    # one distro
+./test/run-linux-tests.sh fedora:41       # or any other apt/dnf base
 ```
 
 A container has no notification daemon, so no banner can appear there. What the
 suite does verify is everything up to the D-Bus call: transcript parsing, the
 chat name, platform dispatch, the arguments `notify-send` receives, and that
 every failure path still exits 0 — including when libnotify is not installed.
+
+Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**, 10/10 each.
 
 ## How it works
 
@@ -118,6 +122,7 @@ click, so the bundle performs the resume itself.
 | `scripts/notify-parse.js` | Reads the payload + `ai-title` from the transcript |
 | `scripts/notify-macos.sh` | Builds and sends the macOS banner |
 | `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
+| `test/run-linux-tests.sh` | Runs the suite across distros (Docker) |
 
 To fire a banner by hand while debugging, set `CLAUDE_NOTIFY_TEST=1` so it is
 prefixed `TEST ·` and never mistaken for a real one:
