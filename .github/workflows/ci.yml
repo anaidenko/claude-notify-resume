@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: npm run lint
+
+  linux:
+    name: Linux suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner is Linux, so the suite runs directly against the distro's
+      # own notify-send — no container needed.
+      - name: Install libnotify
+        run: sudo apt-get update && sudo apt-get install -y libnotify-bin
+      - run: ./test/linux-suite.sh
+
+  linux-delivery:
+    name: Linux delivery (D-Bus)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Proves the daemon actually receives title, body and icon — not just
+      # that the right command was built.
+      - run: docker build -q -t claude-notify-dbus -f test/Dockerfile.dbus .
+      - run: docker run --rm claude-notify-dbus
+
+  macos:
+    name: macOS suite
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./test/run-macos-tests.sh

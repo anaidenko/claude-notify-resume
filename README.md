@@ -3,12 +3,9 @@
 Desktop notifications for [Claude Code](https://claude.com/claude-code) that
 tell you **which conversation** finished — and take you back into it.
 
-```
-┌────────────────────────────────────────────────┐
-│  ✳  Replied                                    │
-│     Fix the geofence rounding bug              │
-└────────────────────────────────────────────────┘
-```
+<img src="assets/banner-permission-needed.png" alt="A macOS notification titled &quot;Permission needed&quot;, with the body &quot;Migrate the auth service to OAuth&quot; — the name of the chat that is waiting." width="500">
+
+*The body is the chat's own name, so you know which session is asking.*
 
 Run several Claude sessions at once and the usual notification is useless: five
 identical banners saying "Claude Code is done", with no clue which repo, which
@@ -181,6 +178,20 @@ without the bundle, `-execute` makes every click exact.
 ```
 
 Then, if you built the icon bundle: `scripts/setup-macos-icon.sh remove`
+
+## Built with
+
+No runtime dependencies — the plugin is shell plus one Node script, and
+everything below is either already on the machine or optional.
+
+| Area | Used |
+| --- | --- |
+| Language | Bash (POSIX-leaning, bash 3.2-compatible), Node.js (stdlib only) |
+| Integration | Claude Code plugin API — `Stop` / `Notification` hooks, JSONL transcript parsing |
+| macOS | `terminal-notifier`, AppleScript (`osascript`), a generated `.app` bundle for the icon |
+| Linux | `notify-send` / libnotify, D-Bus |
+| Testing | Docker (Debian, Ubuntu), stubbed binaries, a real D-Bus + notification-daemon harness |
+| Tooling | shellcheck, npm scripts as the entry point |
 
 ## Contributing
 
