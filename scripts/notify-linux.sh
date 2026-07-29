@@ -9,6 +9,10 @@ set -uo pipefail
 STATUS="$1"
 CHAT="$2"
 
+# Honour the test-stub directory here too: this script is also called directly,
+# without notify.sh having set up PATH.
+[ -n "${CLAUDE_NOTIFY_BIN:-}" ] && PATH="$CLAUDE_NOTIFY_BIN:$PATH" && export PATH
+
 command -v notify-send >/dev/null 2>&1 || exit 0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

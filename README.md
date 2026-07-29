@@ -85,9 +85,9 @@ session — if the notifier is missing or the payload is malformed, the hook
 exits 0 and says nothing.
 
 ```bash
-npm test              # macOS suite, fast, no Docker
-npm run test:linux    # Linux suites, in Docker (Debian + Ubuntu)
-npm run test:ubuntu   # one distro
+npm test              # native suite for your platform
+npm run test:all      # + other platforms, where possible (Docker)
+npm run test:linux    # Linux suites in Docker (Debian + Ubuntu)
 npm run notify:demo   # send one real banner, marked "TEST ·"
 npm run lint          # shellcheck
 ```
@@ -96,7 +96,9 @@ No dependencies and nothing to install — `package.json` exists only to give
 the scripts a familiar entry point. The suites run the scripts straight out of
 the repo, so none of this needs the plugin installed.
 
-The Linux path runs in a container, one per distro:
+`npm test` picks the suite that matches your machine: on Linux it runs natively
+against your own `notify-send`, no Docker involved. From macOS, Docker is how
+the Linux path gets exercised at all:
 
 ```bash
 ./test/run-linux-tests.sh                 # Debian + Ubuntu
@@ -104,10 +106,10 @@ The Linux path runs in a container, one per distro:
 ./test/run-linux-tests.sh fedora:41       # or any other apt base
 ```
 
-A container has no notification daemon, so no banner can appear there. What the
-suite does verify is everything up to the D-Bus call: transcript parsing, the
-chat name, platform dispatch, the arguments `notify-send` receives, and that
-every failure path still exits 0 — including when libnotify is not installed.
+No banner is ever delivered — the notifier binaries are shadowed by stubs that
+record their arguments. What the suite verifies is everything up to that call:
+transcript parsing, the chat name, platform dispatch, the exact arguments
+`notify-send` receives, and that every failure path still exits 0.
 
 Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**.
 

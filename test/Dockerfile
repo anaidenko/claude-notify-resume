@@ -20,7 +20,7 @@ RUN apt-get update \
 WORKDIR /plugin
 COPY scripts/ ./scripts/
 COPY assets/ ./assets/
-COPY test/linux-suite.sh ./test/linux-suite.sh
-RUN chmod +x scripts/*.sh test/linux-suite.sh
+COPY test/linux-suite.sh test/run-tests.sh ./test/
+RUN chmod +x scripts/*.sh test/*.sh
 
 ENTRYPOINT ["./test/linux-suite.sh"]

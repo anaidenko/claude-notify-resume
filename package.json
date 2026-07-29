@@ -11,8 +11,10 @@
         "url": "git+https://github.com/anaidenko/claude-code-notify.git"
     },
     "scripts": {
-        "test": "./test/run-macos-tests.sh",
+        "test": "./test/run-tests.sh",
+        "test:all": "./test/run-tests.sh --all",
         "test:linux": "./test/run-linux-tests.sh",
+        "test:macos": "./test/run-macos-tests.sh",
         "test:debian": "./test/run-linux-tests.sh debian:bookworm-slim",
         "test:ubuntu": "./test/run-linux-tests.sh ubuntu:24.04",
         "lint": "command -v shellcheck >/dev/null || { echo 'shellcheck not installed: brew install shellcheck'; exit 1; }; shellcheck scripts/*.sh test/*.sh",

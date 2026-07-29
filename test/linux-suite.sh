@@ -10,6 +10,22 @@ PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PASS=0
 FAIL=0
 
+# Shadow notify-send with a stub that records its arguments. In a container
+# there is no notification daemon anyway, but this suite also runs directly on
+# a Linux contributor's desktop — where a real banner per assertion would be
+# obnoxious, and where the arguments are what we actually want to check.
+STUB_BIN="$(mktemp -d)"
+STUB_LOG="$STUB_BIN/calls.log"
+cat >"$STUB_BIN/notify-send" <<STUB
+#!/bin/bash
+printf 'notify-send' >>"$STUB_LOG"
+for arg in "\$@"; do printf ' %s' "\$arg" >>"$STUB_LOG"; done
+printf '\n' >>"$STUB_LOG"
+exit 0
+STUB
+chmod +x "$STUB_BIN/notify-send"
+trap 'rm -rf "$STUB_BIN"' EXIT
+
 check() {
     local name="$1" expected="$2" actual="$3"
     if [ "$actual" = "$expected" ]; then
@@ -49,32 +65,33 @@ check "malformed payload → placeholders" "-" "$(printf '%s\n' "$FIELDS" | sed 
 
 printf '\nDispatch\n'
 
-# notify-send writes to a D-Bus daemon that no container has, so it fails —
-# which is exactly the path that must not take the session down with it.
-payload "$TRANSCRIPT" | "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+payload "$TRANSCRIPT" | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 with a working notify-send" "0" "$?"
 
-printf 'not json' | "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+printf 'not json' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 on malformed payload" "0" "$?"
 
-printf '' | "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+printf '' | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
 check "exit 0 on empty stdin" "0" "$?"
 
-# The one failure mode a user is most likely to hit: libnotify not installed.
-PATH_SAVE="$PATH"
-export PATH=/usr/bin:/bin
-NOTIFY_SEND="$(command -v notify-send)"
-mv "$NOTIFY_SEND" "${NOTIFY_SEND}.bak"
-payload "$TRANSCRIPT" | "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
-check "exit 0 when notify-send is absent" "0" "$?"
-mv "${NOTIFY_SEND}.bak" "$NOTIFY_SEND"
-export PATH="$PATH_SAVE"
+# The likeliest real-world failure: libnotify not installed. Shadow notify-send
+# with a stub that reports "not found" rather than moving the system binary —
+# this suite also runs on a contributor's own machine, where renaming
+# /usr/bin/notify-send is not an acceptable side effect. (Emptying PATH instead
+# would be too blunt: bash itself would stop resolving, and the script would
+# die at its shebang rather than exercise the path under test.)
+NO_BIN="$(mktemp -d)"
+printf '#!/bin/sh\nexit 127\n' >"$NO_BIN/notify-send"
+chmod +x "$NO_BIN/notify-send"
+payload "$TRANSCRIPT" | env CLAUDE_NOTIFY_BIN="$NO_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+check "exit 0 when notify-send fails" "0" "$?"
+rm -rf "$NO_BIN"
 
-# The title is what a Linux user actually sees, so assert the arguments rather
-# than trusting that the script got there.
-# Trace notify-linux.sh directly: notify.sh only dispatches to it, so the
-# notify-send invocation never appears in the parent's trace.
-ARGS="$(bash -x "$PLUGIN_ROOT/scripts/notify-linux.sh" "Replied" "Fix the geofence rounding bug" 2>&1 | grep -oE "notify-send .*" | head -1)"
+# The title is what a Linux user actually sees, so assert the arguments the
+# stub recorded rather than trusting that the script got there.
+: >"$STUB_LOG"
+env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify-linux.sh" "Replied" "Fix the geofence rounding bug" >/dev/null 2>&1
+ARGS="$(cat "$STUB_LOG")"
 case "$ARGS" in
     *"--app-name=Claude Code"*"Replied"*"Fix the geofence rounding bug"*)
         printf '  ok    notify-send receives status + chat name\n'

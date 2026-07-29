@@ -6,8 +6,8 @@ plus one Node file, no dependencies, no build step.
 ## Running the tests
 
 ```bash
-npm test              # macOS suite, fast, no Docker
-npm run test:linux    # Linux suites in Docker (Debian + Ubuntu)
+npm test              # native suite for your platform
+npm run test:all      # + other platforms, where possible (Docker)
 npm run lint          # shellcheck
 ```
 
