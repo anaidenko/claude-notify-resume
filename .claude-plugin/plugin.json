@@ -1,5 +1,5 @@
 {
-    "name": "claude-code-notify",
-    "version": "1.0.0",
-    "description": "Desktop notifications that name the conversation they came from — and reopen it when clicked. Titles each banner with the chat's own AI-generated name, so parallel sessions stay distinguishable."
+  "name": "claude-code-notify",
+  "version": "1.0.1",
+  "description": "Desktop notifications that name the conversation they came from — and reopen it when clicked. Titles each banner with the chat's own AI-generated name, so parallel sessions stay distinguishable."
 }
