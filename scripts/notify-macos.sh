@@ -58,7 +58,24 @@ elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # express it inside a nested AppleScript literal.
     # Absolute: the click runs from an arbitrary working directory.
     OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
-    ARGS+=(-execute "$(printf '%q %q %q' "$OPENER" "$SESSION_ID" "$CWD")")
+
+    # Which app is Claude Code running under? Only knowable now — by the time
+    # the banner is clicked the process tree is gone and the frontmost app is
+    # Notification Centre. Walk up from this hook to the first app we can drive.
+    HOST=""
+    probe_pid=$PPID
+    for _ in 1 2 3 4 5 6; do
+        [ -n "$probe_pid" ] && [ "$probe_pid" != "1" ] || break
+        probe_cmd="$(ps -o comm= -p "$probe_pid" 2>/dev/null)"
+        case "$probe_cmd" in
+            *"Visual Studio Code"*|*"Code Helper"*) HOST="vscode"; break ;;
+            *iTerm*) HOST="iTerm"; break ;;
+            *Terminal.app*) HOST="Terminal"; break ;;
+        esac
+        probe_pid="$(ps -o ppid= -p "$probe_pid" 2>/dev/null | tr -d ' ')"
+    done
+
+    ARGS+=(-execute "$(printf 'CLAUDE_NOTIFY_HOST=%q %q %q %q' "$HOST" "$OPENER" "$SESSION_ID" "$CWD")")
 fi
 
 terminal-notifier "${ARGS[@]}" >/dev/null 2>&1 || true

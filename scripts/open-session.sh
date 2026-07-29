@@ -13,22 +13,37 @@ SESSION_ID="${1:-}"
 CWD="${2:-}"
 [ -n "$SESSION_ID" ] && [ -n "$CWD" ] || exit 0
 
-# The click can land long after the banner was sent — the folder may have been
-# renamed, unmounted, or cleaned up if it was temporary.
-if [ ! -d "$CWD" ]; then
-    osascript -e "display notification \"$(printf '%s' "$CWD" | sed 's/\\/\\\\/g; s/"/\\"/g')\" with title \"Session folder is gone\" sound name \"Basso\"" >/dev/null 2>&1
-    exit 0
-fi
-
 RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
 # Marks the tab so a later click can find it instead of opening a duplicate.
 TAB_TITLE="claude:$SESSION_ID"
 
 escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
-# Which terminal to drive. Terminal.app is the safe default: it is always
-# present, whereas iTerm and VS Code may not be installed.
-TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-Terminal}"
+# Report back to the user. Prefer terminal-notifier: a bare `osascript`
+# notification is owned by Script Editor, so clicking it opens Script Editor's
+# file dialog — confusing, and nothing to do with this plugin.
+notify() {
+    if command -v terminal-notifier >/dev/null 2>&1; then
+        terminal-notifier -title "$1" -message "$2" -sound "${3:-Basso}" >/dev/null 2>&1
+    else
+        osascript -e "display notification \"$(escape "$2")\" with title \"$(escape "$1")\" sound name \"${3:-Basso}\"" >/dev/null 2>&1
+    fi
+}
+
+# The click can land long after the banner was sent — the folder may have been
+# renamed, unmounted, or cleaned up if it was temporary.
+if [ ! -d "$CWD" ]; then
+    notify "Session folder is gone" "$CWD"
+    exit 0
+fi
+
+# Which terminal to drive. Reopening a session somewhere other than where you
+# are working is worse than useless, so detect the host rather than guessing:
+# walk the process tree recorded at notify time (CLAUDE_NOTIFY_HOST) and fall
+# back to Terminal.app, which is always present.
+#
+# TERM_PROGRAM is not usable here — it is empty in the environment hooks run in.
+TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-${CLAUDE_NOTIFY_HOST:-Terminal}}"
 
 if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
     # VS Code has no scriptable terminal, so this opens the folder and leaves
@@ -39,10 +54,10 @@ if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
         # an unrelated window when the folder is not open anywhere.
         code --new-window "$CWD" >/dev/null 2>&1
         printf '%s' "$RESUME" | pbcopy 2>/dev/null
-        osascript -e 'display notification "Resume command copied — paste it into the VS Code terminal." with title "Session opened in VS Code"' >/dev/null 2>&1
+        notify "Session opened in VS Code" "Resume command copied — paste it into the terminal." "Glass"
         exit 0
     fi
-    osascript -e 'display notification "Install it via Shell Command: Install code command in PATH." with title "VS Code CLI not found"' >/dev/null 2>&1
+    notify "VS Code CLI not found" "Install it via Shell Command: Install 'code' command in PATH."
     exit 0
 fi
 

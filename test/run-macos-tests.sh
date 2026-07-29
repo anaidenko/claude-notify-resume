@@ -147,7 +147,9 @@ if [ -z "$EXECUTE_ARG" ]; then
 else
     # Let the shell re-split it exactly as terminal-notifier will, and check the
     # directory arrives intact rather than split on its space.
-    GOT_CWD="$(eval "set -- $EXECUTE_ARG"; printf '%s' "${3:-}")"
+    # The command carries a CLAUDE_NOTIFY_HOST=... prefix, so cwd is the last
+    # argument rather than a fixed position.
+    GOT_CWD="$(eval "set -- $EXECUTE_ARG"; eval "printf '%s' \"\${$#}\"")"
     if [ "$GOT_CWD" = "$SPACED_DIR" ]; then
         printf '  ok    a cwd with spaces survives as one argument\n'
         PASS=$((PASS + 1))
@@ -158,6 +160,27 @@ else
     fi
 fi
 rm -rf "$SPACED_PARENT"
+
+# An apostrophe is the other character that breaks a quoting layer — the same
+# family of bug as the space, and just as silent when it strikes.
+QUOTE_PARENT="$(mktemp -d)"
+QUOTE_DIR="$QUOTE_PARENT/O'Brien Dir"
+mkdir -p "$QUOTE_DIR"
+: >"$STUB_LOG"
+env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$QUOTE_PARENT/state" \
+    "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$QUOTE_DIR" >/dev/null 2>&1
+SENT="$(cat "$STUB_LOG")"
+EXECUTE_ARG="$(printf '%s' "$SENT" | sed -n 's/.*-execute \(.*\)$/\1/p')"
+GOT_CWD="$(eval "set -- $EXECUTE_ARG"; eval "printf '%s' \"\${$#}\"" 2>/dev/null)"
+if [ "$GOT_CWD" = "$QUOTE_DIR" ]; then
+    printf '  ok    a cwd with an apostrophe survives\n'
+    PASS=$((PASS + 1))
+else
+    printf '  FAIL  a cwd with an apostrophe is mangled\n        expected: %s\n        actual:   %s\n' \
+        "$QUOTE_DIR" "$GOT_CWD"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$QUOTE_PARENT"
 
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
