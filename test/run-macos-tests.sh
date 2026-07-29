@@ -128,11 +128,10 @@ rm -rf "$FALLBACK_BIN"
 contains "falls back to AppleScript"      "osascript"     "$SENT"
 contains "escapes quotes for AppleScript" '\"quotes\"'    "$SENT"
 
-# A cwd with a space used to produce `\ ` from printf %q, which AppleScript
-# rejects outright — the click then silently did nothing. Assert the generated
-# script is valid AppleScript rather than merely non-empty.
-# Force the -execute branch by pointing STATE_DIR somewhere with no bundle,
-# so this assertion holds whether or not the developer installed the icon.
+# A cwd with a space used to be mangled by the quoting layers, leaving the
+# click broken. The click now runs open-session.sh, so assert the path survives
+# as a single argument. Force the -execute branch by pointing STATE_DIR at a
+# location with no bundle, so this holds however the developer configured it.
 SPACED_PARENT="$(mktemp -d)"
 SPACED_DIR="$SPACED_PARENT/My Test Project"
 mkdir -p "$SPACED_DIR"
@@ -140,30 +139,25 @@ mkdir -p "$SPACED_DIR"
 env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$SPACED_PARENT/state" \
     "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$SPACED_DIR" >/dev/null 2>&1
 SENT="$(cat "$STUB_LOG")"
-rm -rf "$SPACED_PARENT"
 
-# Extract the AppleScript the click would run, and check macOS can parse it.
-APPLESCRIPT="$(printf '%s' "$SENT" | sed -n "s/.*-execute osascript -e '\([^']*\)'.*/\1/p")"
-if [ -z "$APPLESCRIPT" ]; then
+EXECUTE_ARG="$(printf '%s' "$SENT" | sed -n 's/.*-execute \(.*\)$/\1/p')"
+if [ -z "$EXECUTE_ARG" ]; then
     printf '  FAIL  no -execute argument was produced\n        %s\n' "$SENT"
     FAIL=$((FAIL + 1))
-elif osascript -e "$APPLESCRIPT" -e 'return "ok"' >/dev/null 2>&1; then
-    printf '  ok    a cwd with spaces yields valid AppleScript\n'
-    PASS=$((PASS + 1))
 else
-    ERR="$(osascript -e "$APPLESCRIPT" 2>&1 | head -1)"
-    case "$ERR" in
-        *"syntax error"*)
-            printf '  FAIL  a cwd with spaces breaks the click\n        %s\n' "$ERR"
-            FAIL=$((FAIL + 1))
-            ;;
-        *)
-            # Anything else means it parsed — e.g. Terminal declined to open.
-            printf '  ok    a cwd with spaces yields valid AppleScript\n'
-            PASS=$((PASS + 1))
-            ;;
-    esac
+    # Let the shell re-split it exactly as terminal-notifier will, and check the
+    # directory arrives intact rather than split on its space.
+    GOT_CWD="$(eval "set -- $EXECUTE_ARG"; printf '%s' "${3:-}")"
+    if [ "$GOT_CWD" = "$SPACED_DIR" ]; then
+        printf '  ok    a cwd with spaces survives as one argument\n'
+        PASS=$((PASS + 1))
+    else
+        printf '  FAIL  a cwd with spaces is mangled\n        expected: %s\n        actual:   %s\n' \
+            "$SPACED_DIR" "$GOT_CWD"
+        FAIL=$((FAIL + 1))
+    fi
 fi
+rm -rf "$SPACED_PARENT"
 
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

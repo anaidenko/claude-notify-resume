@@ -52,23 +52,13 @@ if [ -d "$APP" ] && [ "${CLAUDE_NOTIFY_ICON:-}" = "1" ] && [ "$SESSION_ID" != "-
     fi
     ARGS+=(-sender "$BUNDLE_ID")
 elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
-    # No bundle: no custom icon, but -execute makes the click exact.
-    #
-    # Two layers of quoting, and they are not interchangeable. `printf %q`
-    # protects the value for the shell that finally runs it; the result is then
-    # embedded in an AppleScript string literal, which needs its own escaping —
-    # skip that and any cwd containing a space produces `\ `, on which
-    # AppleScript fails with a syntax error and the click silently does nothing.
-    # The click can land long after the banner was sent, by which time the
-    # folder may be renamed, unmounted or (for a temporary dir) cleaned up.
-    # Check inside the command rather than letting `cd` fail with a bare
-    # "no such file or directory" in a freshly opened window.
-    # No quotes in the fallback message: this string is nested inside an
-    # AppleScript literal which is itself inside the single-quoted -execute
-    # argument, so either quote character would terminate a layer early.
-    QUOTED_CWD="$(printf '%q' "$CWD")"
-    RESUME="cd $QUOTED_CWD 2>/dev/null && claude --resume $(printf '%q' "$SESSION_ID") || echo claude-code-notify:\\ that\\ session\\ folder\\ no\\ longer\\ exists"
-    ARGS+=(-execute "osascript -e 'tell application \"Terminal\" to do script \"$(applescript_escape "$RESUME")\"' -e 'tell application \"Terminal\" to activate'")
+    # No custom icon, but the whole banner is clickable. The click runs
+    # open-session.sh, which reuses this session's existing tab when there is
+    # one — keeping the conditional logic in a script rather than trying to
+    # express it inside a nested AppleScript literal.
+    # Absolute: the click runs from an arbitrary working directory.
+    OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
+    ARGS+=(-execute "$(printf '%q %q %q' "$OPENER" "$SESSION_ID" "$CWD")")
 fi
 
 terminal-notifier "${ARGS[@]}" >/dev/null 2>&1 || true
