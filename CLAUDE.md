@@ -49,6 +49,10 @@ do not "improve" error handling by surfacing errors to the user.
 - **A bare `osascript` notification is owned by Script Editor** — clicking it
   opens Script Editor's file dialog. Send user-facing notifications through
   `terminal-notifier` when it is available (`notify()` in `open-session.sh`).
+- **Claude Code overwrites a Terminal tab's `custom title`** with the chat's
+  own name, so a marker written there does not survive and tab reuse silently
+  degrades to a new window per click. Match the tab by tty instead — find it
+  with `ps ax -o tty=,command=` against `claude --resume <id>`.
 - **The click handler gets a minimal PATH too,** not just the hook. Missing
   this made `open-session.sh` report "VS Code CLI not found" on a machine where
   `code` was installed — it simply was not on the click's PATH.

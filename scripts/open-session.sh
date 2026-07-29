@@ -20,8 +20,13 @@ PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export PATH
 
 RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
-# Marks the tab so a later click can find it instead of opening a duplicate.
-TAB_TITLE="claude:$SESSION_ID"
+
+# Find the tab already running this session, if any, so a second click focuses
+# it instead of opening a duplicate. Match on the running process rather than
+# the tab title: Claude Code overwrites the title with the chat's own name, so
+# a marker written there does not survive.
+EXISTING_TTY="$(ps ax -o tty=,command= 2>/dev/null |
+    awk -v id="$SESSION_ID" '$0 ~ ("claude --resume " id) { print $1; exit }')"
 
 escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
@@ -73,52 +78,58 @@ if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
 fi
 
 if [ "$TERMINAL_APP" = "iTerm" ] || [ "$TERMINAL_APP" = "iTerm2" ]; then
-    osascript >/dev/null 2>&1 <<EOF
+    if [ -n "$EXISTING_TTY" ]; then
+        osascript >/dev/null 2>&1 <<EOF
 tell application "iTerm"
     activate
-    set targetSession to missing value
     repeat with w in windows
         repeat with t in tabs of w
             repeat with s in sessions of t
-                if name of s contains "$(escape "$TAB_TITLE")" then set targetSession to s
+                if (tty of s as string) is "/dev/$(escape "$EXISTING_TTY")" then
+                    select s
+                    select t
+                    return
+                end if
             end repeat
         end repeat
     end repeat
-    if targetSession is not missing value then
-        select targetSession
-    else
-        set newWindow to (create window with default profile)
-        tell current session of newWindow
-            set name to "$(escape "$TAB_TITLE")"
-            write text "$(escape "$RESUME")"
-        end tell
-    end if
+end tell
+EOF
+        exit 0
+    fi
+    osascript >/dev/null 2>&1 <<EOF
+tell application "iTerm"
+    activate
+    set newWindow to (create window with default profile)
+    tell current session of newWindow to write text "$(escape "$RESUME")"
 end tell
 EOF
     exit 0
 fi
 
-# Terminal.app: reuse the tab carrying this session's marker, if one is still
-# open, rather than stacking up a new window per click.
-osascript >/dev/null 2>&1 <<EOF
+# Terminal.app: focus the tab already running this session — matched by tty,
+# which is stable — rather than stacking up a window per click.
+if [ -n "$EXISTING_TTY" ]; then
+    osascript >/dev/null 2>&1 <<EOF
 tell application "Terminal"
     activate
-    set foundTab to missing value
-    set foundWindow to missing value
     repeat with w in windows
         repeat with t in tabs of w
-            if (custom title of t as string) is "$(escape "$TAB_TITLE")" then
-                set foundTab to t
-                set foundWindow to w
+            if (tty of t as string) is "/dev/$(escape "$EXISTING_TTY")" then
+                set selected of t to true
+                set index of w to 1
+                return
             end if
         end repeat
     end repeat
-    if foundTab is not missing value then
-        set selected of foundTab to true
-        set index of foundWindow to 1
-    else
-        set newTab to do script "$(escape "$RESUME")"
-        set custom title of newTab to "$(escape "$TAB_TITLE")"
-    end if
+end tell
+EOF
+    exit 0
+fi
+
+osascript >/dev/null 2>&1 <<EOF
+tell application "Terminal"
+    activate
+    do script "$(escape "$RESUME")"
 end tell
 EOF
