@@ -177,10 +177,16 @@ notification is sent. Override it if the guess is wrong:
 export CLAUDE_NOTIFY_TERMINAL=Terminal   # or iTerm, or vscode
 ```
 
-Terminal and iTerm run `claude --resume` directly, and reuse the tab already
-open for that session instead of stacking up a window per click. VS Code has no
-scriptable terminal, so it opens the folder and copies the resume command to
-the clipboard for you to paste.
+The session reopens in a real terminal — Terminal or iTerm, whichever you use —
+and reuses the tab already open for that session instead of stacking up a window
+per click.
+
+Running Claude Code inside VS Code is the one case where the host is
+deliberately not followed: VS Code has no scriptable terminal, so the best it
+could do is open the folder and leave you to paste the command. Resuming the
+conversation is the point, so a VS Code session still gets a terminal. If you
+would rather it just opened the folder, set
+`CLAUDE_NOTIFY_TERMINAL=vscode`.
 
 ### The icon costs you the click
 

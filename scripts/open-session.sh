@@ -43,13 +43,17 @@ if [ ! -d "$CWD" ]; then
     exit 0
 fi
 
-# Which terminal to drive. Reopening a session somewhere other than where you
-# are working is worse than useless, so detect the host rather than guessing:
-# walk the process tree recorded at notify time (CLAUDE_NOTIFY_HOST) and fall
-# back to Terminal.app, which is always present.
+# Which app to drive. The detected host (CLAUDE_NOTIFY_HOST, resolved from the
+# process tree at notify time — TERM_PROGRAM is empty in the hook environment)
+# picks iTerm over Terminal so the session lands in the terminal you use.
 #
-# TERM_PROGRAM is not usable here — it is empty in the environment hooks run in.
-TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-${CLAUDE_NOTIFY_HOST:-Terminal}}"
+# VS Code is deliberately NOT followed here: it has no scriptable terminal, so
+# the best it could do is open the folder and leave you to paste the command.
+# Resuming the conversation is the point, so a VS Code host still gets a real
+# terminal. `CLAUDE_NOTIFY_TERMINAL=vscode` opts back into folder-only.
+HOST="${CLAUDE_NOTIFY_HOST:-}"
+[ "$HOST" = "vscode" ] && HOST="Terminal"
+TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-${HOST:-Terminal}}"
 
 if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
     # VS Code has no scriptable terminal, so this opens the folder and leaves
