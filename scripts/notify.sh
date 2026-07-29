@@ -20,7 +20,10 @@ STATUS="${1:-Claude Code}"
 # Hooks inherit a minimal PATH with neither Homebrew nor nvm on it, so `node`
 # and the notifier binary are both missing unless they are added back. Without
 # this the parser silently fails and every banner degrades to a generic title.
-PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+# CLAUDE_NOTIFY_BIN lets the test suite put stub binaries ahead of the real
+# ones. Without it a test run would deliver actual banners, since the Homebrew
+# path below deliberately outranks whatever the caller had on PATH.
+PATH="${CLAUDE_NOTIFY_BIN:+$CLAUDE_NOTIFY_BIN:}/opt/homebrew/bin:/usr/local/bin:$PATH"
 if ! command -v node >/dev/null 2>&1; then
     for candidate in "$HOME"/.nvm/versions/node/*/bin; do
         [ -x "$candidate/node" ] && PATH="$candidate:$PATH"

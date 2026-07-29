@@ -1,0 +1,21 @@
+{
+    "name": "claude-code-notify",
+    "version": "1.0.0",
+    "description": "Desktop notifications for Claude Code that name the conversation they came from — and reopen it when clicked.",
+    "private": true,
+    "license": "MIT",
+    "author": "Andrii Naidenko",
+    "homepage": "https://github.com/anaidenko/claude-code-notify",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/anaidenko/claude-code-notify.git"
+    },
+    "scripts": {
+        "test": "./test/run-linux-tests.sh",
+        "test:debian": "./test/run-linux-tests.sh debian:bookworm-slim",
+        "test:ubuntu": "./test/run-linux-tests.sh ubuntu:24.04",
+        "test:macos": "./test/run-macos-tests.sh",
+        "lint": "command -v shellcheck >/dev/null || { echo 'shellcheck not installed: brew install shellcheck'; exit 1; }; shellcheck scripts/*.sh test/*.sh",
+        "notify:demo": "./test/demo-notification.sh"
+    }
+}

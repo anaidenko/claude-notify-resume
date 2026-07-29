@@ -8,6 +8,10 @@ CHAT="$2"
 SESSION_ID="${3:--}"
 CWD="${4:--}"
 
+# Honour the test-stub directory here too: this script is also called directly,
+# without notify.sh having set up PATH.
+[ -n "${CLAUDE_NOTIFY_BIN:-}" ] && PATH="$CLAUDE_NOTIFY_BIN:$PATH" && export PATH
+
 # Fall back to AppleScript when terminal-notifier is absent, so the plugin
 # works on a bare macOS with nothing installed. The trade-off: `display
 # notification` shows the host app's icon (Script Editor) and supports no click

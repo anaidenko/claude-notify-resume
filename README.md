@@ -79,13 +79,24 @@ Every path fails silently by design: a notification must never break your
 session — if the notifier is missing or the payload is malformed, the hook
 exits 0 and says nothing.
 
-The Linux path is covered by a container test suite, run against every
-supported distro:
+```bash
+npm test              # Linux suites, in Docker (Debian + Ubuntu)
+npm run test:ubuntu   # one distro
+npm run test:macos    # macOS suite, on the host
+npm run notify:demo   # send one real banner, marked "TEST ·"
+npm run lint          # shellcheck
+```
+
+No dependencies and nothing to install — `package.json` exists only to give
+the scripts a familiar entry point. The suites run the scripts straight out of
+the repo, so none of this needs the plugin installed.
+
+The Linux path runs in a container, one per distro:
 
 ```bash
 ./test/run-linux-tests.sh                 # Debian + Ubuntu
 ./test/run-linux-tests.sh ubuntu:24.04    # one distro
-./test/run-linux-tests.sh fedora:41       # or any other apt/dnf base
+./test/run-linux-tests.sh fedora:41       # or any other apt base
 ```
 
 A container has no notification daemon, so no banner can appear there. What the

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Linux-path checks for notify.sh. Run inside the container built by
-# test/Dockerfile — see its header for what this can and cannot prove.
+# Linux-path checks for notify.sh.
+#
+# This runs INSIDE the container built by test/Dockerfile — it is the suite
+# itself, not the entry point. Run test/run-linux-tests.sh on your own machine;
+# invoking this directly on macOS fails, since there is no notify-send.
 set -uo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
