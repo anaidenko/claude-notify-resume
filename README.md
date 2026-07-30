@@ -51,6 +51,18 @@ Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 
 Restart Claude Code — hook config is read at startup.
 
+Third-party marketplaces do not refresh themselves by default, so turn on
+auto-update once and new versions arrive on their own: `/plugin` → **Marketplaces**
+→ select `anaidenko` → enable auto-update. Claude Code then refreshes shortly
+after a session starts and prompts you to `/reload-plugins`.
+
+Without it, updating is two commands:
+
+```
+/plugin marketplace update anaidenko
+/plugin update claude-notify-resume
+```
+
 **macOS** works out of the box via AppleScript. For click-to-resume, install
 the notifier binary:
 
