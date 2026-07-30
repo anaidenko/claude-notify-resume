@@ -10,7 +10,7 @@ jobs:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Pinned, not apt: Ubuntu ships 0.9.0, which flags things newer releases
       # accept (and vice versa), so `npm run lint` would pass locally and fail
       # here. Fetched directly rather than via a third-party action, so CI runs
@@ -26,7 +26,7 @@ jobs:
     name: Linux suite
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The runner is Linux, so the suite runs directly against the distro's
       # own notify-send — no container needed.
       - name: Install libnotify
@@ -37,7 +37,7 @@ jobs:
     name: Linux delivery (D-Bus)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Proves the daemon actually receives title, body and icon — not just
       # that the right command was built.
       - run: docker build -q -t claude-notify-dbus -f test/Dockerfile.dbus .
@@ -47,5 +47,5 @@ jobs:
     name: macOS suite
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: ./test/run-macos-tests.sh

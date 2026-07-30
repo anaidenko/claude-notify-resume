@@ -1,0 +1,72 @@
+name: Bug report
+description: A banner did not appear, appeared wrong, or clicking it misbehaved
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Notifications fail in quiet ways — the hook always exits 0 so it can
+        never break your session, which means a missing banner leaves no error
+        behind. The details below are what make it diagnosable.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+      placeholder: |
+        Expected a banner titled "Replied" after Claude finished.
+        Nothing appeared, and the session continued normally.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      description: For Linux, the distro and desktop environment — `notify-send` behaviour varies by notification daemon.
+      placeholder: macOS 15.2 · or · Ubuntu 24.04, GNOME on Wayland
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: From `claude --version`.
+      placeholder: 2.1.220
+    validations:
+      required: true
+
+  - type: textarea
+    id: manual-banner
+    attributes:
+      label: Does a banner appear when sent by hand?
+      description: |
+        Run this from the plugin directory and paste the output. It separates
+        "the hook never fired" from "the notifier is not delivering".
+      value: |
+        ```
+        $ ./test/demo-notification.sh
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: |
+        Config file contents, whether the icon bundle is installed, a screenshot
+        of the banner if it appeared but looked wrong.

@@ -4,6 +4,14 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.1
+
+No functional change — the plugin behaves exactly as 1.1.0.
+
+- CI pins shellcheck 0.11.0 instead of taking Ubuntu's 0.9.0, which disagreed
+  about `A && B || C` and failed a lint that was clean locally.
+- Added a social preview image.
+
 ## 1.1.0
 
 ### Added
