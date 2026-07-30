@@ -27,6 +27,19 @@ if [ -n "${CLAUDE_NOTIFY_DEMO_CHAT:-}" ]; then
     # screen from the same group. Demoing several in a row therefore needs a
     # distinct id each time, or only the last one is ever seen.
     DEMO_ID="demo-$(printf '%s' "$CLAUDE_NOTIFY_DEMO_CHAT" | cksum | cut -d' ' -f1)"
+
+    # Keep the demo out of the real click state: with the icon bundle installed,
+    # dispatch records the session it just announced, and a demo would leave a
+    # `demo-…` id there — so clicking Show on a genuine pending banner
+    # afterwards would try to resume a session that never existed. The bundle
+    # still has to be visible for the banner to look real, so copy it across.
+    DEMO_STATE="$(mktemp -d)"
+    if [ -d "$HOME/.claude/claude-code-notify/Claude Code.app" ]; then
+        cp -R "$HOME/.claude/claude-code-notify/Claude Code.app" "$DEMO_STATE/" 2>/dev/null
+    fi
+    trap 'rm -rf "$DEMO_STATE"' EXIT
+    export CLAUDE_NOTIFY_STATE_DIR="$DEMO_STATE"
+
     case "$(uname -s)" in
         Darwin) "$REPO_ROOT/scripts/notify-macos.sh" "$STATUS" "$CLAUDE_NOTIFY_DEMO_CHAT" "$DEMO_ID" "$REPO_ROOT" ;;
         Linux) "$REPO_ROOT/scripts/notify-linux.sh" "$STATUS" "$CLAUDE_NOTIFY_DEMO_CHAT" ;;

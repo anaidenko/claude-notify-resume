@@ -36,16 +36,21 @@ ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
 # -group collapses repeat banners from one chat instead of stacking them.
 [ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
 
-# Print the icon-setup command once, with this install's real path filled in.
-# Beats documenting a cache path the reader has to reconstruct by hand: the
-# script knows where it lives.
+# Offer the icon setup once, as a banner rather than on stderr: a hook that
+# exits 0 has its stderr swallowed, so a printed hint would never be seen. The
+# path is filled in from this install, since the script knows where it lives.
+# `set -C` makes the marker creation exclusive, so two concurrent hooks cannot
+# both decide they are the first.
 if [ ! -d "$APP" ] && [ -z "${CLAUDE_NOTIFY_STATE_DIR:-}" ]; then
     ICON_HINT="$STATE_DIR/.icon-hint-shown"
-    if [ ! -f "$ICON_HINT" ]; then
-        mkdir -p "$STATE_DIR" 2>/dev/null &&
-            : >"$ICON_HINT" 2>/dev/null &&
-            printf 'claude-notify-resume: for the Claude icon on your banners, run\n  %s\nThis notice is shown once.\n' \
-                "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-macos-icon.sh" >&2
+    if [ ! -f "$ICON_HINT" ] && mkdir -p "$STATE_DIR" 2>/dev/null; then
+        if (set -C; : >"$ICON_HINT") 2>/dev/null; then
+            SETUP_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-macos-icon.sh"
+            printf '%s\n' "$SETUP_PATH" | pbcopy 2>/dev/null
+            terminal-notifier -title "Want the Claude icon on these?" \
+                -message "Setup command copied — paste it into a terminal." \
+                -sound Glass >/dev/null 2>&1 || true
+        fi
     fi
 fi
 

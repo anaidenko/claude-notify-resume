@@ -76,8 +76,9 @@ brew install terminal-notifier
 
 Then build the icon bundle, which gives the banner the Claude icon:
 
-The plugin prints the exact command for your install the first time it sends a
-banner without the icon — copy it from there. It looks like this:
+The first banner without the icon offers the setup command as a banner of its
+own and copies it to the clipboard, so you can paste it straight into a terminal.
+It looks like this:
 
 ```bash
 ~/.claude/plugins/cache/anaidenko/claude-notify-resume/<version>/scripts/setup-macos-icon.sh
@@ -93,7 +94,8 @@ discards its banners with no error and a success exit code.
 
 **Linux** needs nothing beyond `notify-send`, which desktop distros ship with
 libnotify preinstalled. If yours does not: `sudo apt install libnotify-bin`
-(or your distro's package) — the plugin says so once if it is missing.
+(or your distro's package). Without it no banner can appear at all — the hook
+stays silent by design rather than interrupting your session.
 
 ## Platform support
 

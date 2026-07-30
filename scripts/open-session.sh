@@ -25,8 +25,11 @@ RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")
 # it instead of opening a duplicate. Match on the running process rather than
 # the tab title: Claude Code overwrites the title with the chat's own name, so
 # a marker written there does not survive.
+# Both spellings occur: a shell resume writes `--resume <id>`, while the VS Code
+# extension spawns `--resume=<id>`. Matching only the space form silently missed
+# every editor-hosted session.
 EXISTING_TTY="$(ps ax -o tty=,command= 2>/dev/null |
-    awk -v id="$SESSION_ID" '$0 ~ ("claude --resume " id) { print $1; exit }')"
+    awk -v id="$SESSION_ID" '$0 ~ ("--resume[= ]" id) { print $1; exit }')"
 
 escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
@@ -82,23 +85,25 @@ fi
 
 if [ "$TERMINAL_APP" = "iTerm" ] || [ "$TERMINAL_APP" = "iTerm2" ]; then
     if [ -n "$EXISTING_TTY" ]; then
-        osascript >/dev/null 2>&1 <<EOF
+        FOCUSED="$(osascript 2>/dev/null <<EOF
 tell application "iTerm"
-    activate
     repeat with w in windows
         repeat with t in tabs of w
             repeat with s in sessions of t
                 if (tty of s as string) is "/dev/$(escape "$EXISTING_TTY")" then
                     select s
                     select t
-                    return
+                    activate
+                    return "yes"
                 end if
             end repeat
         end repeat
     end repeat
+    return "no"
 end tell
 EOF
-        exit 0
+)"
+        [ "$FOCUSED" = "yes" ] && exit 0
     fi
     osascript >/dev/null 2>&1 <<EOF
 tell application "iTerm"
@@ -112,22 +117,28 @@ fi
 
 # Terminal.app: focus the tab already running this session — matched by tty,
 # which is stable — rather than stacking up a window per click.
+# A tty may exist without any tab of this app owning it — the session could be
+# running under a different terminal, inside tmux, or in the VS Code extension.
+# Report whether a tab was actually focused, and fall through to opening a new
+# window when it was not; otherwise the click activates the app and does nothing.
 if [ -n "$EXISTING_TTY" ]; then
-    osascript >/dev/null 2>&1 <<EOF
+    FOCUSED="$(osascript 2>/dev/null <<EOF
 tell application "Terminal"
-    activate
     repeat with w in windows
         repeat with t in tabs of w
             if (tty of t as string) is "/dev/$(escape "$EXISTING_TTY")" then
                 set selected of t to true
                 set index of w to 1
-                return
+                activate
+                return "yes"
             end if
         end repeat
     end repeat
+    return "no"
 end tell
 EOF
-    exit 0
+)"
+    [ "$FOCUSED" = "yes" ] && exit 0
 fi
 
 osascript >/dev/null 2>&1 <<EOF

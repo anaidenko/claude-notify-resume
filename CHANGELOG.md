@@ -4,6 +4,27 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.6
+
+Fixes from an independent review.
+
+### Fixed
+
+- **Clicking a banner from an editor-hosted session now finds its tab.** The
+  VS Code extension spawns `claude --resume=<id>`; the lookup only matched the
+  space-separated form, so those sessions never matched.
+- **A click no longer does nothing when the session's tab belongs to another
+  app** (a different terminal, tmux, or no tty at all) — it opens a new window
+  instead of silently activating the app.
+- **`CLAUDE_NOTIFY_MUTE=` (empty) now overrides the config file**, which is how
+  you switch muting off for a single run; it was being ignored.
+- **A `#` inside a quoted config value is kept** instead of truncating the value.
+- The icon-setup offer arrives as a banner with the command on the clipboard.
+  It used to print to stderr, which Claude Code discards for a hook that exits 0
+  — so nobody ever saw it.
+- `npm run notify:demo` no longer overwrites the real click target, which made a
+  later **Show** on a genuine banner resume a session that never existed.
+
 ## 1.1.5
 
 Documentation only.

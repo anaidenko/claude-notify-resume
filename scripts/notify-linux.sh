@@ -14,9 +14,11 @@ CHAT="$2"
 # without notify.sh having set up PATH.
 [ -n "${CLAUDE_NOTIFY_BIN:-}" ] && PATH="$CLAUDE_NOTIFY_BIN:$PATH" && export PATH
 
-# Without libnotify nothing can be delivered, and silence looks identical to a
-# broken plugin. Say so once — a hook that printed on every turn would be worse
-# than the problem it reports.
+# Without libnotify nothing can be delivered. The notice goes to stderr, which
+# Claude Code only surfaces when a hook exits non-zero — so in practice this is a
+# breadcrumb for someone running the script by hand, not something the user will
+# see. Exiting non-zero to force it would break the one rule this plugin has.
+# The README states the dependency instead.
 if ! command -v notify-send >/dev/null 2>&1; then
     NOTICE="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code-notify/missing-libnotify"
     if [ ! -f "$NOTICE" ]; then

@@ -249,5 +249,47 @@ payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/s
 check "exit 0 when the config is absent" "0" "$?"
 rm -f "$CONFIG_FILE"
 
+# An empty environment variable is how you switch a file setting off for one
+# run, so set-but-empty must beat the file — testing non-emptiness silently
+# broke that.
+printf 'MUTE=Replied\n' >"$CONFIG_FILE"
+: >"$STUB_LOG"
+payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+    CLAUDE_NOTIFY_CONFIG="$CONFIG_FILE" CLAUDE_NOTIFY_MUTE= \
+    "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+if [ -s "$STUB_LOG" ]; then
+    check "empty variable overrides the file" "sent" "sent"
+else
+    check "empty variable overrides the file" "sent" "muted"
+fi
+
+# A `#` inside quotes belongs to the value; only an unquoted one starts a
+# comment. Stripping comments first turned the value into garbage.
+printf 'TERMINAL="iTerm # keep"\n' >"$CONFIG_FILE"
+# shellcheck disable=SC2016  # must expand in the inner bash, not here
+GOT="$(env CLAUDE_NOTIFY_CONFIG="$CONFIG_FILE" bash -c \
+    '. "$0"; printf "%s" "${CLAUDE_NOTIFY_TERMINAL:-}"' \
+    "$REPO_ROOT/scripts/load-config.sh")"
+check "quoted # stays in the value" "iTerm # keep" "$GOT"
+
+printf 'TERMINAL=iTerm # drop\n' >"$CONFIG_FILE"
+# shellcheck disable=SC2016  # must expand in the inner bash, not here
+GOT="$(env CLAUDE_NOTIFY_CONFIG="$CONFIG_FILE" bash -c \
+    '. "$0"; printf "%s" "${CLAUDE_NOTIFY_TERMINAL:-}"' \
+    "$REPO_ROOT/scripts/load-config.sh")"
+check "unquoted # starts a comment" "iTerm" "$GOT"
+rm -f "$CONFIG_FILE"
+
+printf '\nResuming\n'
+
+# Both spellings appear in the wild: a shell resume writes `--resume <id>`, the
+# VS Code extension writes `--resume=<id>`. Matching only the first form meant
+# editor-hosted sessions were never found, so every click opened a new window.
+for form in "--resume SESSIONX" "--resume=SESSIONX"; do
+    MATCHED="$(printf 'ttys999 claude %s\n' "$form" |
+        awk -v id="SESSIONX" '$0 ~ ("--resume[= ]" id) { print $1; exit }')"
+    check "tty match: claude $form" "ttys999" "$MATCHED"
+done
+
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

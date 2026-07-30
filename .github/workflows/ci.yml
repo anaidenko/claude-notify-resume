@@ -27,10 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # The runner is Linux, so the suite runs directly against the distro's
-      # own notify-send — no container needed.
-      - name: Install libnotify
-        run: sudo apt-get update && sudo apt-get install -y libnotify-bin
+      # No libnotify needed: the suite shadows notify-send with a stub and
+      # asserts on the arguments. Real delivery is the D-Bus job's business.
       - run: ./test/linux-suite.sh
 
   linux-delivery:

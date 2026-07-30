@@ -26,10 +26,13 @@ CLAUDE_NOTIFY_CONFIG="${CLAUDE_NOTIFY_CONFIG:-$HOME/.claude/claude-notify-resume
 
 if [ -f "$CLAUDE_NOTIFY_CONFIG" ]; then
     while IFS= read -r config_line || [ -n "$config_line" ]; do
-        # Strip comments and surrounding whitespace.
-        config_line="${config_line%%#*}"
         config_line="$(printf '%s' "$config_line" |
             sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+        # A whole-line comment goes now; an inline one is handled after
+        # unquoting, so a `#` inside quotes survives as part of the value.
+        case "$config_line" in
+            '#'*) continue ;;
+        esac
         [ -n "$config_line" ] || continue
 
         case "$config_line" in
@@ -49,14 +52,21 @@ if [ -f "$CLAUDE_NOTIFY_CONFIG" ]; then
             '') continue ;;
         esac
 
-        # Strip one layer of matching quotes, for values with trailing spaces.
+        # Strip one layer of matching quotes, for values with trailing spaces or
+        # a literal `#`. Unquoted values lose an inline comment instead.
         case "$config_value" in
             '"'*'"') config_value="${config_value#\"}"; config_value="${config_value%\"}" ;;
             "'"*"'") config_value="${config_value#\'}"; config_value="${config_value%\'}" ;;
+            *)
+                config_value="${config_value%%#*}"
+                config_value="$(printf '%s' "$config_value" | sed 's/[[:space:]]*$//')"
+                ;;
         esac
 
-        # Environment wins: only set what is not already there.
-        eval "config_existing=\${CLAUDE_NOTIFY_$config_key:-}"
+        # Environment wins — including when it is deliberately empty, which is
+        # how you switch a file setting off for a single run
+        # (`CLAUDE_NOTIFY_MUTE= claude …`). Test set-ness, not emptiness.
+        eval "config_existing=\${CLAUDE_NOTIFY_$config_key+set}"
         [ -n "$config_existing" ] && continue
 
         eval "export CLAUDE_NOTIFY_$config_key=\$config_value"
