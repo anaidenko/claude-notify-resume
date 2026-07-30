@@ -34,9 +34,9 @@ do not "improve" error handling by surfacing errors to the user.
 - **`-sender` and a clickable banner body are mutually exclusive.** `-sender`
   gives the banner the Claude icon and swallows the click: `-execute` is then
   ignored and only the *Show* button resumes. Verified directly — it is a
-  platform constraint, which is why the icon is opt-in behind
-  `CLAUDE_NOTIFY_ICON=1`. `LSUIElement` and the alert style are *not* the cause;
-  both were investigated and cleared.
+  platform constraint, not a bug to fix. Installing the icon bundle chooses the
+  icon side of that trade; there is no separate flag. `LSUIElement` and the
+  alert style are *not* the cause; both were investigated and cleared.
 - **Never build the click action by nesting quotes.** It once nested a shell
   command inside an AppleScript literal inside a single-quoted `-execute` arg;
   a space produced `\ ` and an apostrophe closed a layer early, both silently.

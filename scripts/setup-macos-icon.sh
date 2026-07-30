@@ -6,10 +6,9 @@
 #   setup-macos-icon.sh            build it, then send a test banner
 #   setup-macos-icon.sh remove     delete it (banners keep working, no icon)
 #
-# Notifications work without this, and the icon is a trade rather than an
-# upgrade: -sender swallows the click on the banner body, leaving only the
-# "Show" button. Building the bundle is therefore not enough to activate it —
-# the user must also set CLAUDE_NOTIFY_ICON=1.
+# Notifications work without this. The trade it makes: -sender swallows the
+# click on the banner body, so the banner's "Show" button becomes the way to
+# resume. Installing the bundle is the whole opt-in — there is no separate flag.
 set -euo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -113,11 +112,10 @@ touch "$APP"
 
 printf '  ✓ built %s\n' "$APP"
 
-printf '\n  ! The bundle is built but NOT active yet. Enable it with:\n'
-printf '        export CLAUDE_NOTIFY_ICON=1\n'
-printf '    (add it to ~/.zshrc to keep it). It is opt-in because the icon\n'
-printf '    costs you the click: with it, only the banner'\''s "Show" button\n'
-printf '    resumes the session — clicking the banner body does nothing.\n'
+printf '\n  ! With the icon installed, resume via the banner Show button —\n'
+printf '    clicking the banner body does nothing, because the icon and the\n'
+printf '    body click cannot coexist on macOS. Re-run with "remove" to go\n'
+printf '    back to a fully clickable banner without the icon.\n'
 
 if ! command -v terminal-notifier >/dev/null 2>&1; then
     printf '\n  ! terminal-notifier is missing — install it:  brew install terminal-notifier\n'

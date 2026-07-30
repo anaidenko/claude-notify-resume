@@ -16,9 +16,11 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ### Fixed
 
-- The Claude icon is now opt-in (`CLAUDE_NOTIFY_ICON=1`). `terminal-notifier`'s
-  `-sender` gives the banner its icon but swallows the click on the banner
-  body, leaving only the *Show* button; a working click is the better default.
+- Made explicit that the Claude icon and a clickable banner body cannot
+  coexist: `terminal-notifier`'s `-sender` gives the banner its icon but
+  swallows the body click, leaving the *Show* button as the way to resume.
+  Installing the icon bundle is what picks that side; removing it restores a
+  fully clickable banner.
 - A click landing on a folder that has since been renamed or deleted now says
   so, instead of opening a terminal on a bare `cd` failure.
 - Notifications raised by the click handler go through `terminal-notifier`

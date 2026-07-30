@@ -36,13 +36,12 @@ ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
 # -group collapses repeat banners from one chat instead of stacking them.
 [ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
 
-# The icon and a clickable banner body are mutually exclusive, and the icon is
-# NOT the default: -sender gives the banner the Claude icon but takes the click
-# with it, leaving only the "Show" action button (verified — -execute is ignored
-# whenever -sender is present). Losing a click most people expect to work is the
-# worse trade, so the bundle alone is not enough: opting in takes
-# CLAUDE_NOTIFY_ICON=1 as well.
-if [ -d "$APP" ] && [ "${CLAUDE_NOTIFY_ICON:-}" = "1" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
+# The icon and a clickable banner body are mutually exclusive: -sender gives the
+# banner the Claude icon but takes the click with it, leaving the "Show" action
+# button as the way in (verified — -execute is ignored whenever -sender is
+# present). Show is a fine alternative, and the icon is what makes a banner
+# recognisable at a glance, so installing the bundle is the whole opt-in.
+if [ -d "$APP" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # -sender routes the click to the bundle, which resumes the session by
     # reading this state file. Write-then-rename: a click landing mid-write
     # would otherwise read a half-written file and silently do nothing.

@@ -57,14 +57,15 @@ the notifier binary:
 brew install terminal-notifier
 ```
 
-That alone gives you click-to-resume on the whole banner. If you would rather
-have the Claude icon and accept that only the **Show** button resumes, build
-the icon bundle and opt in:
+Then build the icon bundle, which gives the banner the Claude icon:
 
 ```bash
 ~/.claude/plugins/cache/anaidenko/claude-notify-resume/*/scripts/setup-macos-icon.sh
-export CLAUDE_NOTIFY_ICON=1
 ```
+
+With the bundle installed you resume via the banner's **Show** button; skip it
+and the whole banner is clickable instead. See
+[the trade-off](#the-icon-costs-you-the-click).
 
 That script ends by sending a test banner. **If you do not see it**, open
 **System Settings → Notifications → Claude Code** and turn on *Allow
@@ -177,7 +178,6 @@ from a shell that read it, so a VS Code session would silently ignore it.
 ```json
 {
   "env": {
-    "CLAUDE_NOTIFY_ICON": "1",
     "CLAUDE_NOTIFY_TERMINAL": "iTerm"
   }
 }
@@ -185,9 +185,10 @@ from a shell that read it, so a VS Code session would silently ignore it.
 
 | Variable | Effect |
 | --- | --- |
-| `CLAUDE_NOTIFY_ICON=1` | Show the Claude icon, accepting that only *Show* resumes |
 | `CLAUDE_NOTIFY_TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
 | `CLAUDE_NOTIFY_TEST=1` | Prefix the banner `TEST ·` (for debugging by hand) |
+
+Nothing here is required — the defaults are what the plugin is tuned for.
 
 ### Where the session reopens
 
@@ -223,19 +224,16 @@ present, `-execute` is ignored, clicking the banner *body* does nothing, and
 only the **Show** action button — which you have to hover to reveal — resumes
 the session. Verified directly; it is a platform constraint, not a bug here.
 
-So the icon is **opt-in**, and clicking works everywhere by default:
+Which way round you get depends on one thing: whether the icon bundle is
+installed. With it, the banner carries the Claude icon and **Show** is the way
+back in. Without it, the whole banner is clickable but shows the terminal's
+icon. Run `setup-macos-icon.sh remove` to switch.
 
-```bash
-# Default: no custom icon, but the whole banner is clickable.
-# Opt into the icon, accepting that only "Show" will resume:
-export CLAUDE_NOTIFY_ICON=1
-```
-
-With the icon enabled there is a second cost: the click target lives in a
+The icon path has a second cost worth knowing: the click target lives in a
 single state file that each notification overwrites, so with two sessions
-running, clicking an *older* banner opens whichever notified most recently.
-macOS does not tell the app which banner was clicked. The `-execute` default
-has neither problem — every click is exact.
+running, clicking an *older* banner opens whichever notified most recently —
+macOS does not say which banner was clicked. Without the bundle every click is
+exact.
 
 ## Uninstall
 
