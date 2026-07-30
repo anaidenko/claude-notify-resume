@@ -152,6 +152,7 @@ click, which is why the icon is opt-in — see
 | `scripts/notify-macos.sh` | Builds and sends the macOS banner |
 | `scripts/notify-linux.sh` | Builds and sends the Linux banner |
 | `scripts/open-session.sh` | Reopens a session when a banner is clicked |
+| `scripts/load-config.sh` | Reads the config file, letting the environment win |
 | `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
 | `test/run-tests.sh` | Picks the suite matching your platform |
 
@@ -170,37 +171,34 @@ passed.
 
 ### Configuration
 
-Every option is an environment variable, and the reliable place to set them is
-the `env` block of `~/.claude/settings.json` — those reach the hooks whatever
-launched Claude Code. Exporting from `~/.zshrc` only works for sessions started
-from a shell that read it, so a VS Code session would silently ignore it.
+Nothing needs configuring — the defaults are what the plugin is tuned for. When
+you do want to change something, write `~/.claude/claude-notify-resume.conf` (copy
+[`claude-notify-resume.conf.example`](claude-notify-resume.conf.example) to start):
 
-```json
-{
-  "env": {
-    "CLAUDE_NOTIFY_TERMINAL": "iTerm"
-  }
-}
+```ini
+# Statuses you would rather not be told about
+MUTE=Replied,Waiting for you
+
+# Force a terminal instead of the detected one: Terminal, iTerm, or vscode
+TERMINAL=iTerm
 ```
 
-| Variable | Effect |
+| Key | Effect |
 | --- | --- |
-| `CLAUDE_NOTIFY_MUTE` | Comma-separated statuses to drop, e.g. `Replied,Waiting for you` |
-| `CLAUDE_NOTIFY_TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
-| `CLAUDE_NOTIFY_TEST=1` | Prefix the banner `TEST ·` (for debugging by hand) |
+| `MUTE` | Comma-separated statuses to drop |
+| `TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
 
-`Replied` fires on **every** reply, which is the point when you have walked
-away and noise when you are watching the chat. Mute what you do not want and
-keep the ones that need you:
-
-```json
-{ "env": { "CLAUDE_NOTIFY_MUTE": "Replied,Waiting for you" } }
-```
+`Replied` fires on **every** reply — the point when you have walked away, noise
+when you are watching the chat. Muting it keeps the ones that actually need you.
 
 Status names are matched case-insensitively, spaces around commas are fine, and
-an unknown name is simply ignored.
+an unknown name is ignored. A malformed file cannot break the hook.
 
-Nothing here is required — the defaults are what the plugin is tuned for.
+Every key also works as an environment variable prefixed `CLAUDE_NOTIFY_` (so
+`CLAUDE_NOTIFY_MUTE`), which takes precedence over the file — handy for a
+one-off. The `env` block of `settings.json` works too, but it exports into every
+process Claude Code spawns, so the file is the safer home for a permanent
+setting.
 
 ### Where the session reopens
 

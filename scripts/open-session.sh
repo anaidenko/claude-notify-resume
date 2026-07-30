@@ -48,6 +48,9 @@ if [ ! -d "$CWD" ]; then
     exit 0
 fi
 
+# shellcheck source=scripts/load-config.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load-config.sh"
+
 # Which app to drive. The detected host (CLAUDE_NOTIFY_HOST, resolved from the
 # process tree at notify time — TERM_PROGRAM is empty in the hook environment)
 # picks iTerm over Terminal so the session lands in the terminal you use.

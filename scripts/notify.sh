@@ -10,6 +10,11 @@ set -uo pipefail
 
 STATUS="${1:-Claude Code}"
 
+# Settings may come from a config file as well as the environment; the
+# environment wins. Sourced before the mute check so a file-only MUTE applies.
+# shellcheck source=scripts/load-config.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load-config.sh"
+
 # CLAUDE_NOTIFY_MUTE is a comma-separated list of statuses to drop, so anyone
 # who finds a banner on every reply too chatty can keep just the ones that need
 # them — e.g. CLAUDE_NOTIFY_MUTE="Replied,Waiting for you". Checked first, before

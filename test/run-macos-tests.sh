@@ -205,5 +205,49 @@ mute_probe "later entry also matches"    "Input needed,Replied"     "Replied"   
 mute_probe "empty list mutes nothing"    ""                         "Replied"           "sent"
 mute_probe "partial word does not match" "Repl"                     "Replied"           "sent"
 
+printf '\nConfig file\n'
+
+# Settings can live in a file instead of the global `env` block, which exports
+# into every process Claude Code spawns. The environment still wins, so a one-off
+# override works; and a malformed file must never take the hook down.
+CONFIG_FILE="$STUB_BIN/notify.conf"
+
+config_probe() {
+    local name="$1" body="$2" want="$3"
+    shift 3
+    printf '%s' "$body" >"$CONFIG_FILE"
+    : >"$STUB_LOG"
+    payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+        CLAUDE_NOTIFY_CONFIG="$CONFIG_FILE" "$@" \
+        "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+    local got
+    if [ -s "$STUB_LOG" ]; then got="sent"; else got="muted"; fi
+    check "$name" "$want" "$got"
+}
+
+config_probe "file mutes a status"        'MUTE=Replied
+' "muted"
+config_probe "comments and spaces"       '# a comment
+
+  MUTE = replied
+' "muted"
+config_probe "environment overrides file" 'MUTE=Replied
+' "sent" env CLAUDE_NOTIFY_MUTE=Other
+config_probe "junk lines are skipped"    'not a config line
+MUTE=Replied
+!!!=x
+' "muted"
+
+# The one rule: a broken config must not break the session.
+printf 'garbage\n\001\002\nMUTE\n=\n' >"$CONFIG_FILE"
+payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+    CLAUDE_NOTIFY_CONFIG="$CONFIG_FILE" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+check "exit 0 on a malformed config" "0" "$?"
+
+payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+    CLAUDE_NOTIFY_CONFIG="/nonexistent/config" "$REPO_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
+check "exit 0 when the config is absent" "0" "$?"
+rm -f "$CONFIG_FILE"
+
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

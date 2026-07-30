@@ -1,0 +1,25 @@
+# Example config for claude-notify-resume.
+#
+# Copy to ~/.claude/claude-notify-resume.conf and uncomment what you want.
+# Nothing here is required — every line has a sensible default.
+#
+# Format: KEY=value, one per line, # starts a comment. Unknown keys are ignored.
+# Each key also works as an environment variable prefixed CLAUDE_NOTIFY_, which
+# takes precedence over this file.
+
+# Statuses to drop, comma-separated. Case and spaces around commas don't matter.
+# Valid names: Replied, Permission needed, Waiting for you, Input needed,
+#              Background agent needs you, Background agent finished
+#
+# `Replied` fires on every reply — useful when you have walked away, noisy when
+# you are watching the chat.
+#
+# MUTE=Replied,Waiting for you
+
+# Where a click reopens the session. Detected from the process tree by default;
+# set this only if the guess is wrong.
+#   Terminal — Terminal.app (the fallback)
+#   iTerm    — iTerm2
+#   vscode   — open the folder in VS Code instead of resuming in a terminal
+#
+# TERMINAL=iTerm
