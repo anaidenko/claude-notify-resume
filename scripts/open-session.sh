@@ -31,8 +31,13 @@ RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")
 # Both spellings occur: a shell resume writes `--resume <id>`, while the VS Code
 # extension spawns `--resume=<id>`. Matching only the space form silently missed
 # every editor-hosted session.
+# A session can show up more than once: the VS Code extension spawns a copy with
+# no controlling terminal, which `ps` prints as `??`, alongside the real tab. The
+# `??` row sorts first, so taking the first match found a tty that can never own
+# a tab — the lookup then failed and every click opened another window while the
+# real tab sat there. Skip the ttyless rows and take the first genuine one.
 EXISTING_TTY="$(ps ax -o tty=,command= 2>/dev/null |
-    awk -v id="$SESSION_ID" '$0 ~ ("--resume[= ]" id) { print $1; exit }')"
+    awk -v id="$SESSION_ID" '$1 != "??" && $0 ~ ("--resume[= ]" id) { print $1; exit }')"
 
 escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 

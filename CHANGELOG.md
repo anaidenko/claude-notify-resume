@@ -4,6 +4,22 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.11
+
+### Fixed
+
+- Clicking a banner from an editor-hosted session now focuses the tab that is
+  already running it, instead of opening a second window beside it. The VS Code
+  extension spawns a copy of the session with no controlling terminal, which
+  `ps` prints as `??` and lists ahead of the real tab; the lookup took the first
+  match, so it searched for a tty that cannot own a tab, found nothing, and fell
+  through to opening a window. This is what 1.1.10's cold-start fix was reaching
+  for and missed — that fix was real, but it addressed a different branch.
+- A fallback click no longer lands on an older release. The newest installed
+  version was chosen by string order, which puts "1.1.10" before "1.1.9" — so
+  the first two-digit release sent every fallback click into the previous
+  version's code. Versions are now compared numerically.
+
 ## 1.1.10
 
 ### Fixed

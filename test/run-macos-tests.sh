@@ -285,11 +285,30 @@ printf '\nResuming\n'
 # Both spellings appear in the wild: a shell resume writes `--resume <id>`, the
 # VS Code extension writes `--resume=<id>`. Matching only the first form meant
 # editor-hosted sessions were never found, so every click opened a new window.
+# Run the real expression out of the script rather than a copy of it: an earlier
+# version of this test asserted on its own inline awk, so it stayed green while
+# the script it was meant to cover did something else.
+# shellcheck disable=SC2016  # matches the literal $SESSION_ID in the script
+TTY_MATCH="$(sed -n 's/^ *awk -v id="\$SESSION_ID" //p' "$REPO_ROOT/scripts/open-session.sh" |
+    head -1 | sed "s/')\"$/'/")"
+[ -n "$TTY_MATCH" ] || {
+    printf '  FAIL  could not lift the tty-match expression from open-session.sh\n'
+    FAIL=$((FAIL + 1))
+}
+
 for form in "--resume SESSIONX" "--resume=SESSIONX"; do
     MATCHED="$(printf 'ttys999 claude %s\n' "$form" |
-        awk -v id="SESSIONX" '$0 ~ ("--resume[= ]" id) { print $1; exit }')"
+        eval awk -v 'id="SESSIONX"' "$TTY_MATCH")"
     check "tty match: claude $form" "ttys999" "$MATCHED"
 done
+
+# The VS Code extension spawns a copy with no controlling terminal, which `ps`
+# prints as `??` and lists before the real tab. Taking the first match picked a
+# tty that can never own a tab, so the tab lookup failed and each click opened
+# another window next to the session that was already there.
+MATCHED="$(printf '?? claude --resume=SESSIONX\nttys999 claude --resume SESSIONX\n' |
+    eval awk -v 'id="SESSIONX"' "$TTY_MATCH")"
+check "a ttyless row does not mask the real tab" "ttys999" "$MATCHED"
 
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

@@ -95,6 +95,18 @@ do not "improve" error handling by surfacing errors to the user.
   not its to remove and `-list ALL` does not even see them. Clear those by hand
   in Notification Centre. Per-session removal is `-remove claude-<session-id>`
   (the group set in `notify-macos.sh`); there is no wildcard.
+- **One session can appear twice in `ps`.** The VS Code extension spawns a copy
+  with no controlling terminal, printed as `??` and listed *before* the real
+  tab, so `{ print $1; exit }` returned a tty no tab can own — the lookup failed
+  and every click opened another window next to the session already running.
+  Skip ttyless rows (`$1 != "??"`). The test that was meant to cover this
+  asserted on its own inline copy of the awk, so it stayed green regardless of
+  what the script did; it now lifts the expression out of `open-session.sh`.
+- **Sort version directories numerically, not as strings.** The bundle's
+  fallback picks the newest installed copy, and `"1.1.10" < "1.1.9"`
+  lexicographically — so the first two-digit release quietly routed every
+  fallback click into the *previous* version, the stale code the fallback exists
+  to escape. Latent from the day the fallback was written; it woke up at 1.1.10.
 - **`application "X" is running` lies in the click handler's environment.** It
   answers from the caller's Launch Services session, and both the hook and the
   click run stripped, so it returns `false` for a Terminal that is plainly on

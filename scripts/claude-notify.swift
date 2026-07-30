@@ -32,11 +32,28 @@ func resolveOpener(recorded: String) -> String? {
     if fm.fileExists(atPath: recorded) { return recorded }
     let cache = fm.homeDirectoryForCurrentUser.path + "/.claude/plugins/cache"
     var newest: String? = nil
+    // Compare version directories numerically. A plain string sort puts "1.1.10"
+    // *before* "1.1.9", so the first two-digit release would send every fallback
+    // click to the previous version — the stale code this exists to escape.
+    func isNewer(_ a: String, _ b: String) -> Bool {
+        let x = a.split(separator: ".").map { Int($0) ?? 0 }
+        let y = b.split(separator: ".").map { Int($0) ?? 0 }
+        for i in 0..<max(x.count, y.count) {
+            let l = i < x.count ? x[i] : 0, r = i < y.count ? y[i] : 0
+            if l != r { return l > r }
+        }
+        return false
+    }
+    var newestVersion: String? = nil
     for market in (try? fm.contentsOfDirectory(atPath: cache)) ?? [] {
         let base = cache + "/" + market + "/claude-notify-resume"
-        for version in ((try? fm.contentsOfDirectory(atPath: base)) ?? []).sorted() {
+        for version in (try? fm.contentsOfDirectory(atPath: base)) ?? [] {
             let candidate = base + "/" + version + "/scripts/open-session.sh"
-            if fm.fileExists(atPath: candidate) { newest = candidate }
+            guard fm.fileExists(atPath: candidate) else { continue }
+            if newestVersion == nil || isNewer(version, newestVersion!) {
+                newestVersion = version
+                newest = candidate
+            }
         }
     }
     return newest
