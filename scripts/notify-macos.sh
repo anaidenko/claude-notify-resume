@@ -64,7 +64,9 @@ elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     HOST=""
     probe_pid=$PPID
     for _ in 1 2 3 4 5 6; do
-        [ -n "$probe_pid" ] && [ "$probe_pid" != "1" ] || break
+        if [ -z "$probe_pid" ] || [ "$probe_pid" = "1" ]; then
+            break
+        fi
         probe_cmd="$(ps -o comm= -p "$probe_pid" 2>/dev/null)"
         case "$probe_cmd" in
             *"Visual Studio Code"*|*"Code Helper"*) HOST="vscode"; break ;;

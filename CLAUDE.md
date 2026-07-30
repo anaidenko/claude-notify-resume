@@ -61,6 +61,10 @@ do not "improve" error handling by surfacing errors to the user.
   renamed to `claude-notify-resume`, but renaming those directories would orphan
   the click state and icon bundle of every existing install for no user-visible
   gain. Same reasoning as `BUNDLE_ID`: internal identifiers stay put.
+- **shellcheck versions disagree, so CI pins one.** Ubuntu's apt ships 0.9.0,
+  which flags `A && B || C` (SC2015) where 0.11.0 stays quiet — a lint that was
+  clean locally failed on the first CI run. The workflow fetches 0.11.0 directly
+  and then runs `npm run lint`, so CI and a developer run the same check.
 - **Old banners carry the command that was current when they were sent.** A
   banner sitting in Notification Centre still runs the *old* click action, so
   clear them (`terminal-notifier -remove ALL`) before testing a change to it,
