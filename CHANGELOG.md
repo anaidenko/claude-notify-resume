@@ -4,9 +4,34 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-## 1.1.11
+## 1.2.0
 
-### Fixed
+Clicking a banner reopens the conversation it came from — reliably, and with
+the Claude icon on the banner. Both were true on paper in 1.1.0; getting them
+true in practice took the eleven patches below, and they are kept as they were
+written rather than tidied into a single claim, because the sequence is the
+honest record of what it took.
+
+### Highlights
+
+- **The banner carries the Claude icon and the whole body is clickable.** These
+  were mutually exclusive under the old spoofed-`-sender` scheme; a real
+  compiled bundle that posts natively (1.1.9) ended the trade-off.
+- **A click lands in the session that sent the banner** — each notification
+  carries its own id, so an older banner resumes *that* chat (1.1.9).
+- **A second click focuses the tab already running the session** instead of
+  stacking windows, matched by tty (1.1.0, made to work for editor-hosted
+  sessions in 1.1.6 and 1.1.11).
+- **Updating the plugin no longer breaks banners already on screen** (1.1.7,
+  corrected for two-digit versions in 1.1.11).
+- **`MUTE` and a config file** at `~/.claude/claude-notify-resume.conf`, with
+  `CLAUDE_NOTIFY_*` overrides (1.1.0).
+
+### The patches, as they happened
+
+#### 1.1.11
+
+##### Fixed
 
 - Clicking a banner from an editor-hosted session now focuses the tab that is
   already running it, instead of opening a second window beside it. The VS Code
@@ -20,9 +45,9 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
   the first two-digit release sent every fallback click into the previous
   version's code. Versions are now compared numerically.
 
-## 1.1.10
+#### 1.1.10
 
-### Fixed
+##### Fixed
 
 - Clicking a banner while the terminal was already open no longer leaves an
   extra empty window behind. The cold-start guard asked
@@ -34,11 +59,11 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 - The same guard for iTerm never matched at all: the process is `iTerm2` while
   the app is `iTerm`, so every iTerm start looked cold.
 
-## 1.1.9
+#### 1.1.9
 
 The icon and the click are no longer enemies.
 
-### Changed
+##### Changed
 
 - **The icon bundle is now a real, compiled app** (`scripts/claude-notify.swift`,
   built by the setup script — needs the Xcode Command Line Tools). It posts
@@ -50,7 +75,7 @@ The icon and the click are no longer enemies.
   resumes *that* session — the shared-state race is gone, and with it the
   known limitation.
 
-### Fixed
+##### Fixed
 
 - Opening a session when the terminal was not running no longer produces a
   pair of windows (the startup window plus ours) — the command runs in the
@@ -59,24 +84,24 @@ The icon and the click are no longer enemies.
   the click handler falls back to the newest installed version when the
   recorded path is gone.
 
-## 1.1.8
+#### 1.1.8
 
-### Changed
+##### Changed
 
 - The folder-only `TERMINAL=vscode` mode is gone. Opening a folder and copying a
   command to the clipboard is not resuming a conversation, and a session hosted
   in VS Code already resumed in a real terminal — so the mode only existed to be
   a worse version of the default.
 
-### Added
+##### Added
 
 - Tests for the click handler (`test/open-session-suite.sh`, wired into
   `npm test` and CI) — the path where the last two bugs hid, previously covered
   only by hand.
 
-## 1.1.7
+#### 1.1.7
 
-### Fixed
+##### Fixed
 
 - **Updating the plugin no longer breaks the banner click.** The icon bundle had
   the plugin path baked in at build time, and an update installs a new version
@@ -84,11 +109,11 @@ The icon and the click are no longer enemies.
   file that no longer existed and did nothing. The bundle now resolves the
   newest installed version when it runs.
 
-## 1.1.6
+#### 1.1.6
 
 Fixes from an independent review.
 
-### Fixed
+##### Fixed
 
 - **Clicking a banner from an editor-hosted session now finds its tab.** The
   VS Code extension spawns `claude --resume=<id>`; the lookup only matched the
@@ -105,7 +130,7 @@ Fixes from an independent review.
 - `npm run notify:demo` no longer overwrites the real click target, which made a
   later **Show** on a genuine banner resume a session that never existed.
 
-## 1.1.5
+#### 1.1.5
 
 Documentation only.
 
@@ -114,12 +139,12 @@ Documentation only.
 - The icon is presented as part of macOS setup rather than a choice to weigh:
   resuming from **Show** is simply how it works.
 
-## 1.1.4
+#### 1.1.4
 
 - The plugin prints the icon-setup command once, with the real path for your
   install, instead of asking the README to describe a versioned cache path.
 
-## 1.1.3
+#### 1.1.3
 
 Documentation only.
 
@@ -131,7 +156,7 @@ Documentation only.
   installed one — with two versions cached, the glob expanded to two paths and
   `setup-macos-icon.sh remove` silently ran the install flow instead.
 
-## 1.1.2
+#### 1.1.2
 
 Documentation only — no change to how the plugin behaves.
 
@@ -139,7 +164,7 @@ Documentation only — no change to how the plugin behaves.
   running two commands by hand.
 - Added issue templates.
 
-## 1.1.1
+#### 1.1.1
 
 No functional change — the plugin behaves exactly as 1.1.0.
 
@@ -147,9 +172,9 @@ No functional change — the plugin behaves exactly as 1.1.0.
   about `A && B || C` and failed a lint that was clean locally.
 - Added a social preview image.
 
-## 1.1.0
+#### 1.1.0
 
-### Added
+##### Added
 
 - `MUTE` drops the statuses you would rather not hear about — e.g.
   `MUTE=Replied,Waiting for you` keeps only the banners that need you.
@@ -161,7 +186,7 @@ No functional change — the plugin behaves exactly as 1.1.0.
 - A second click focuses the tab already running that session instead of
   opening another window, matched by tty.
 
-### Changed
+##### Changed
 
 - The Claude icon is now the default. It and a clickable banner body cannot
   coexist on macOS (`-sender` swallows the click), so resuming happens through
@@ -171,7 +196,7 @@ No functional change — the plugin behaves exactly as 1.1.0.
   has no scriptable terminal, and resuming the conversation matters more than
   landing in the editor. `CLAUDE_NOTIFY_TERMINAL=vscode` opts into folder-only.
 
-### Fixed
+##### Fixed
 
 - The icon bundle is a thin launcher for `open-session.sh` rather than a second
   copy of the same logic, which had already drifted out of step.
