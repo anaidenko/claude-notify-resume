@@ -69,6 +69,10 @@ do not "improve" error handling by surfacing errors to the user.
   on GitHub pointing at commits that had never been pushed, while `main` still
   showed 1.1.1 — so the marketplace kept serving the old version. Use
   `git push --follow-tags`.
+- **Never bake a plugin-cache path into the icon bundle.** Updating installs a
+  new `<version>/` directory and deletes the old one, so a path fixed at build
+  time dies on the next update and the click silently does nothing. Resolve the
+  newest `cache/*/claude-notify-resume/*/scripts/` at click time.
 - **Old banners carry the command that was current when they were sent.** A
   banner sitting in Notification Centre still runs the *old* click action, so
   clear them (`terminal-notifier -remove ALL`) before testing a change to it,

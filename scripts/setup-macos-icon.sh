@@ -79,9 +79,14 @@ cat >"$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # The bundle is only a launcher: it reads the recorded session and hands off to
-# open-session.sh, so tab reuse, terminal detection and the missing-folder
-# notice all live in one place instead of being duplicated (and going stale)
-# here. PLUGIN_ROOT is baked in because the bundle sits outside the repo.
+# open-session.sh, so tab reuse, terminal detection and the missing-folder notice
+# live in one place instead of being duplicated (and going stale) here.
+#
+# It resolves that script at click time rather than baking in a path, because
+# updating the plugin installs a new version directory and deletes the old one —
+# a path fixed at build time dies on the next update, and the click then does
+# nothing at all. The build-time path stays as a fallback for a checkout that is
+# not installed through a marketplace.
 cat >"$APP/Contents/MacOS/claude-notify" <<SH
 #!/bin/bash
 # Clicking a banner launches this; it reopens the chat recorded by notify.sh.
@@ -90,7 +95,15 @@ STATE="\${CLAUDE_NOTIFY_STATE_DIR:-\$HOME/.claude/claude-code-notify}/last-sessi
 SESSION_ID="\$(sed -n 1p "\$STATE")"
 CWD="\$(sed -n 2p "\$STATE")"
 [ -n "\$SESSION_ID" ] && [ -n "\$CWD" ] || exit 0
-exec "$PLUGIN_ROOT/scripts/open-session.sh" "\$SESSION_ID" "\$CWD"
+
+# Newest installed version wins; the glob is sorted so the last match is it.
+OPENER=""
+for candidate in "\$HOME"/.claude/plugins/cache/*/claude-notify-resume/*/scripts/open-session.sh; do
+    [ -f "\$candidate" ] && OPENER="\$candidate"
+done
+[ -n "\$OPENER" ] || OPENER="$PLUGIN_ROOT/scripts/open-session.sh"
+
+exec "\$OPENER" "\$SESSION_ID" "\$CWD"
 SH
 chmod +x "$APP/Contents/MacOS/claude-notify"
 touch "$APP"

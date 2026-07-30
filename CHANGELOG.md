@@ -4,6 +4,16 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.7
+
+### Fixed
+
+- **Updating the plugin no longer breaks the banner click.** The icon bundle had
+  the plugin path baked in at build time, and an update installs a new version
+  directory and removes the old one — so after any update the click pointed at a
+  file that no longer existed and did nothing. The bundle now resolves the
+  newest installed version when it runs.
+
 ## 1.1.6
 
 Fixes from an independent review.
