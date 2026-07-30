@@ -36,6 +36,19 @@ ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
 # -group collapses repeat banners from one chat instead of stacking them.
 [ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
 
+# Print the icon-setup command once, with this install's real path filled in.
+# Beats documenting a cache path the reader has to reconstruct by hand: the
+# script knows where it lives.
+if [ ! -d "$APP" ] && [ -z "${CLAUDE_NOTIFY_STATE_DIR:-}" ]; then
+    ICON_HINT="$STATE_DIR/.icon-hint-shown"
+    if [ ! -f "$ICON_HINT" ]; then
+        mkdir -p "$STATE_DIR" 2>/dev/null &&
+            : >"$ICON_HINT" 2>/dev/null &&
+            printf 'claude-notify-resume: for the Claude icon on your banners, run\n  %s\nThis notice is shown once.\n' \
+                "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-macos-icon.sh" >&2
+    fi
+fi
+
 # The icon and a clickable banner body are mutually exclusive: -sender gives the
 # banner the Claude icon but takes the click with it, leaving the "Show" action
 # button as the way in (verified — -execute is ignored whenever -sender is

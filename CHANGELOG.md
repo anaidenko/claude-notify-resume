@@ -4,6 +4,11 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.4
+
+- The plugin prints the icon-setup command once, with the real path for your
+  install, instead of asking the README to describe a versioned cache path.
+
 ## 1.1.3
 
 Documentation only.

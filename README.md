@@ -76,8 +76,11 @@ brew install terminal-notifier
 
 Then build the icon bundle, which gives the banner the Claude icon:
 
+The plugin prints the exact command for your install the first time it sends a
+banner without the icon — copy it from there. It looks like this:
+
 ```bash
-"$(ls -d ~/.claude/plugins/cache/anaidenko/claude-notify-resume/*/ | sort -V | tail -1)scripts/setup-macos-icon.sh"
+~/.claude/plugins/cache/anaidenko/claude-notify-resume/<version>/scripts/setup-macos-icon.sh
 ```
 
 With the bundle installed you resume via the banner's **Show** button; skip it
