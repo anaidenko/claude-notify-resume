@@ -4,9 +4,9 @@ Desktop notifications for [Claude Code](https://claude.com/claude-code) that
 tell you **which conversation** replied — or is waiting on you — and take you
 back into it.
 
-<img src="assets/banner-permission-needed.png" alt="A macOS notification titled &quot;Permission needed&quot;, with the body &quot;Migrate the auth service to OAuth&quot; — the name of the chat that is waiting." width="500">
+<img src="assets/banner-replied.png" alt="A macOS notification titled &quot;Replied&quot;, with the body &quot;Fix the geofence rounding bug&quot; — the name of the chat that finished." width="500">
 
-*The body is the chat's own name, so you know which session is asking.
+*The body is the chat's own name, so you know which session it is.
 (Shown with the icon bundle installed — see [the trade-off](#the-icon-costs-you-the-click).)*
 
 Run several Claude sessions at once and the usual notification is useless: five
