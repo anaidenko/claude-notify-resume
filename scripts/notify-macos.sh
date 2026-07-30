@@ -29,7 +29,6 @@ fi
 # Overridable so the test suite never writes to the real user's state.
 STATE_DIR="${CLAUDE_NOTIFY_STATE_DIR:-$HOME/.claude/claude-code-notify}"
 APP="$STATE_DIR/Claude Code.app"
-BUNDLE_ID="com.claude-code.notify"
 
 ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
 
@@ -54,21 +53,25 @@ if [ ! -d "$APP" ] && [ -z "${CLAUDE_NOTIFY_STATE_DIR:-}" ]; then
     fi
 fi
 
-# The icon and a clickable banner body are mutually exclusive: -sender gives the
-# banner the Claude icon but takes the click with it, leaving the "Show" action
-# button as the way in (verified — -execute is ignored whenever -sender is
-# present). Show is a fine alternative, and the icon is what makes a banner
-# recognisable at a glance, so installing the bundle is the whole opt-in.
-if [ -d "$APP" ] && [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
-    # -sender routes the click to the bundle, which resumes the session by
-    # reading this state file. Write-then-rename: a click landing mid-write
-    # would otherwise read a half-written file and silently do nothing.
-    mkdir -p "$STATE_DIR"
-    if printf '%s\n%s\n' "$SESSION_ID" "$CWD" >"$STATE_DIR/last-session.tmp" 2>/dev/null; then
-        mv -f "$STATE_DIR/last-session.tmp" "$STATE_DIR/last-session" 2>/dev/null
-    fi
-    ARGS+=(-sender "$BUNDLE_ID")
-elif [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
+# With the bundle installed, the bundle itself posts the notification through
+# the native UserNotifications API — so the banner carries the Claude icon AND
+# the whole body is clickable: the click lands in the bundle's own delegate,
+# with this session's id and cwd riding inside the notification. No spoofed
+# sender, no shared state file, no fake-bundle launch quirks.
+#
+# The marker file distinguishes a compiled bundle from the older script-only
+# one, which does not understand `post` — that one falls through to -execute
+# and keeps working, just without the icon, until setup is re-run.
+NOTIFIER_BIN="$APP/Contents/MacOS/claude-notify"
+if [ -f "$APP/Contents/Resources/native-notifier" ] && [ -x "$NOTIFIER_BIN" ] &&
+    [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
+    OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
+    "$NOTIFIER_BIN" post "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" "$OPENER" \
+        "claude-$SESSION_ID" >/dev/null 2>&1 || true
+    exit 0
+fi
+
+if [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # No custom icon, but the whole banner is clickable. The click runs
     # open-session.sh, which reuses this session's existing tab when there is
     # one — keeping the conditional logic in a script rather than trying to

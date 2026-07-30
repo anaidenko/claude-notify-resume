@@ -31,12 +31,24 @@ do not "improve" error handling by surfacing errors to the user.
 - **`ai-title` is an internal transcript record, not a public API.** It is how
   the banner learns the chat's name. Keep the fallback to the project directory
   name working.
-- **`-sender` and a clickable banner body are mutually exclusive.** `-sender`
-  gives the banner the Claude icon and swallows the click: `-execute` is then
-  ignored and only the *Show* button resumes. Verified directly — it is a
-  platform constraint, not a bug to fix. Installing the icon bundle chooses the
-  icon side of that trade; there is no separate flag. `LSUIElement` and the
-  alert style are *not* the cause; both were investigated and cleared.
+- **Never spoof the sender with a fake, script-only bundle.** The `-sender`
+  scheme swallowed the body click by design, and macOS's willingness to launch
+  the fake app on click proved undocumented and flaky: it worked, then refused
+  (unsigned), then launched at *delivery* time after signing, then went silent
+  even with a fresh `usernoted`. The answer was a real compiled app
+  (`claude-notify.swift`) that posts natively — the icon and the body click
+  stopped being enemies the moment the notification had a real owner.
+- **`usernoted` caches the notification→app binding.** Rebuilding a bundle
+  leaves banners bound to the old snapshot; `killall usernoted` resets the
+  daemon (it restarts itself). A useful diagnostic, though not a fix for the
+  spoofed-sender scheme above.
+- **A cold `activate` of Terminal opens its startup window,** so a `do script`
+  on top yields two windows — one empty, one yours. Check
+  `application "Terminal" is running` (which does not launch it) and reuse the
+  startup window on a cold start. Same for iTerm.
+- **Stub probes need `</dev/null`.** An `osascript -e …` call without a heredoc
+  inherits the caller's stdin; the test stub reads stdin to capture heredoc
+  bodies, so without the redirect the suite hangs forever.
 - **Never build the click action by nesting quotes.** It once nested a shell
   command inside an AppleScript literal inside a single-quoted `-execute` arg;
   a space produced `\ ` and an apostrophe closed a layer early, both silently.

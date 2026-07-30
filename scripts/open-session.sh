@@ -90,13 +90,30 @@ EOF
 )"
         [ "$FOCUSED" = "yes" ] && exit 0
     fi
-    osascript >/dev/null 2>&1 <<EOF
+    # Same startup-window story as Terminal: launching iTerm opens one window
+    # already, so only create another when iTerm was running before us.
+    ITERM_WAS_RUNNING="$(osascript -e 'application "iTerm" is running' </dev/null 2>/dev/null)"
+    if [ "$ITERM_WAS_RUNNING" = "true" ]; then
+        osascript >/dev/null 2>&1 <<EOF
 tell application "iTerm"
     activate
     set newWindow to (create window with default profile)
     tell current session of newWindow to write text "$(escape "$RESUME")"
 end tell
 EOF
+    else
+        osascript >/dev/null 2>&1 <<EOF
+tell application "iTerm"
+    activate
+    try
+        tell current session of current window to write text "$(escape "$RESUME")"
+    on error
+        set newWindow to (create window with default profile)
+        tell current session of newWindow to write text "$(escape "$RESUME")"
+    end try
+end tell
+EOF
+    fi
     exit 0
 fi
 
@@ -126,9 +143,27 @@ EOF
     [ "$FOCUSED" = "yes" ] && exit 0
 fi
 
-osascript >/dev/null 2>&1 <<EOF
+# Launching Terminal creates its startup window; a `do script` on top of that
+# yields a pair — one empty, one ours. When Terminal was not already running,
+# run the command in that startup window instead. (`application X is running`
+# does not itself launch X.)
+TERMINAL_WAS_RUNNING="$(osascript -e 'application "Terminal" is running' </dev/null 2>/dev/null)"
+if [ "$TERMINAL_WAS_RUNNING" = "true" ]; then
+    osascript >/dev/null 2>&1 <<EOF
 tell application "Terminal"
     activate
     do script "$(escape "$RESUME")"
 end tell
 EOF
+else
+    osascript >/dev/null 2>&1 <<EOF
+tell application "Terminal"
+    activate
+    try
+        do script "$(escape "$RESUME")" in front window
+    on error
+        do script "$(escape "$RESUME")"
+    end try
+end tell
+EOF
+fi

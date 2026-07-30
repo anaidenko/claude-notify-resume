@@ -4,6 +4,31 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.9
+
+The icon and the click are no longer enemies.
+
+### Changed
+
+- **The icon bundle is now a real, compiled app** (`scripts/claude-notify.swift`,
+  built by the setup script — needs the Xcode Command Line Tools). It posts
+  notifications natively and receives clicks as its own delegate, so a banner
+  carries the Claude icon **and** the whole body is clickable. The spoofed
+  `-sender` scheme it replaces swallowed the body click by design and failed
+  four different, undocumented ways in one day of debugging.
+- Each notification carries its own session id, so clicking an older banner
+  resumes *that* session — the shared-state race is gone, and with it the
+  known limitation.
+
+### Fixed
+
+- Opening a session when the terminal was not running no longer produces a
+  pair of windows (the startup window plus ours) — the command runs in the
+  startup window instead.
+- A banner posted before a plugin update and clicked after it still resumes:
+  the click handler falls back to the newest installed version when the
+  recorded path is gone.
+
 ## 1.1.8
 
 ### Changed

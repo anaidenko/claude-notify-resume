@@ -78,35 +78,31 @@ cat >"$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# The bundle is only a launcher: it reads the recorded session and hands off to
-# open-session.sh, so tab reuse, terminal detection and the missing-folder notice
-# live in one place instead of being duplicated (and going stale) here.
-#
-# It resolves that script at click time rather than baking in a path, because
-# updating the plugin installs a new version directory and deletes the old one —
-# a path fixed at build time dies on the next update, and the click then does
-# nothing at all. The build-time path stays as a fallback for a checkout that is
-# not installed through a marketplace.
-cat >"$APP/Contents/MacOS/claude-notify" <<SH
-#!/bin/bash
-# Clicking a banner launches this; it reopens the chat recorded by notify.sh.
-STATE="\${CLAUDE_NOTIFY_STATE_DIR:-\$HOME/.claude/claude-code-notify}/last-session"
-[ -f "\$STATE" ] || exit 0
-SESSION_ID="\$(sed -n 1p "\$STATE")"
-CWD="\$(sed -n 2p "\$STATE")"
-[ -n "\$SESSION_ID" ] && [ -n "\$CWD" ] || exit 0
-
-# Newest installed version wins; the glob is sorted so the last match is it.
-OPENER=""
-for candidate in "\$HOME"/.claude/plugins/cache/*/claude-notify-resume/*/scripts/open-session.sh; do
-    [ -f "\$candidate" ] && OPENER="\$candidate"
-done
-[ -n "\$OPENER" ] || OPENER="$PLUGIN_ROOT/scripts/open-session.sh"
-
-exec "\$OPENER" "\$SESSION_ID" "\$CWD"
-SH
-chmod +x "$APP/Contents/MacOS/claude-notify"
+# The executable is a small compiled binary (scripts/claude-notify.swift): it
+# posts the notification natively and receives the click as a real app delegate.
+# A fake script-only bundle spoofed via -sender failed four undocumented ways in
+# one day — launch refusal, stale daemon bindings, delivery-time launches — and
+# swallowed the body click by design. A real app has none of those problems.
+if ! command -v swiftc >/dev/null 2>&1; then
+    printf 'swiftc not found — install the Xcode Command Line Tools first:\n' >&2
+    printf '    xcode-select --install\n' >&2
+    exit 1
+fi
+printf '  compiling the notifier binary (first run takes ~30s)…\n'
+if ! swiftc -O -o "$APP/Contents/MacOS/claude-notify" "$PLUGIN_ROOT/scripts/claude-notify.swift" 2>&1 | sed 's/^/    /'; then
+    printf 'compilation failed — the icon bundle was not built.\n' >&2
+    exit 1
+fi
 touch "$APP"
+
+# Marks this as the compiled bundle; notify-macos.sh refuses to `post` through
+# the older script-only one, which would misread the argument.
+touch "$APP/Contents/Resources/native-notifier"
+
+# An unsigned bundle is refused when macOS tries to launch it from a notification
+# click — silently, with no error anywhere. An ad-hoc signature (`-s -`) is enough;
+# it needs no developer account, and without it the Show button does nothing.
+codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
 
 # Launch Services must know the bundle or -sender silently falls back.
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
@@ -114,10 +110,9 @@ touch "$APP"
 
 printf '  ✓ built %s\n' "$APP"
 
-printf '\n  ! With the icon installed, resume via the banner Show button —\n'
-printf '    clicking the banner body does nothing, because the icon and the\n'
-printf '    body click cannot coexist on macOS. Re-run with "remove" to go\n'
-printf '    back to a fully clickable banner without the icon.\n'
+printf '\n  ! Banners now carry the Claude icon, and clicking anywhere on one\n'
+printf '    reopens that chat — the bundle posts natively and receives its own\n'
+printf '    clicks. Run this script with "remove" to go back to plain banners.\n'
 
 if ! command -v terminal-notifier >/dev/null 2>&1; then
     printf '\n  ! terminal-notifier is missing — install it:  brew install terminal-notifier\n'
@@ -131,9 +126,8 @@ printf '    While you are there, set the style to "Alerts" so notifications stay
 printf '    on screen instead of vanishing after a few seconds.\n'
 printf '    Open it with:  open "x-apple.systempreferences:com.apple.preference.notifications"\n'
 
-terminal-notifier -title "TEST · Notifications are on" \
-    -message "Claude Code will notify you here." \
-    -sound Glass -sender "$BUNDLE_ID" >/dev/null 2>&1 || true
+"$APP/Contents/MacOS/claude-notify" post "TEST · Notifications are on" \
+    "Claude Code will notify you here." >/dev/null 2>&1 || true
 printf '\n  → Sent a test banner. If you did NOT see it, the permission above is\n'
 printf '    still off — delivery cannot be detected from a script, so this is\n'
 printf '    the only real check.\n'
