@@ -4,6 +4,15 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.5
+
+Documentation only.
+
+- The config file is the single documented way to change settings; the README no
+  longer suggests `export`.
+- The icon is presented as part of macOS setup rather than a choice to weigh:
+  resuming from **Show** is simply how it works.
+
 ## 1.1.4
 
 - The plugin prints the icon-setup command once, with the real path for your

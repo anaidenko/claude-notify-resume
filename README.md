@@ -7,7 +7,7 @@ back into it.
 <img src="assets/banner-replied.png" alt="A macOS notification titled &quot;Replied&quot;, with the body &quot;Fix the geofence rounding bug&quot; — the name of the chat that finished." width="500">
 
 *The body is the chat's own name, so you know which session it is.
-(Shown with the icon bundle installed — see [the trade-off](#the-icon-costs-you-the-click).)*
+(Resume it from the **Show** button — see [where the session reopens](#where-the-session-reopens).)*
 
 Run several Claude sessions at once and the usual notification is useless: five
 identical banners saying "Claude Code is done", with no clue which repo, which
@@ -83,9 +83,8 @@ banner without the icon — copy it from there. It looks like this:
 ~/.claude/plugins/cache/anaidenko/claude-notify-resume/<version>/scripts/setup-macos-icon.sh
 ```
 
-With the bundle installed you resume via the banner's **Show** button; skip it
-and the whole banner is clickable instead. See
-[the trade-off](#the-icon-costs-you-the-click).
+You then resume a session from the banner's **Show** button — see
+[where the session reopens](#where-the-session-reopens).
 
 That script ends by sending a test banner. **If you do not see it**, open
 **System Settings → Notifications → Claude Code** and turn on *Allow
@@ -139,8 +138,7 @@ On macOS the icon needs a detour: the banner's left-hand icon comes from the
 **sending application**, and `terminal-notifier`'s `-appIcon` / `-contentImage`
 do not affect that slot. So `setup-macos-icon.sh` generates a tiny `.app` that
 exists only to own the icon, and passes `-sender`. That flag also swallows the
-click, which is why the icon is opt-in — see
-[the trade-off](#the-icon-costs-you-the-click).
+click on the banner body, which is why resuming happens through **Show**.
 
 | File | Role |
 | --- | --- |
@@ -151,7 +149,7 @@ click, which is why the icon is opt-in — see
 | `scripts/notify-linux.sh` | Builds and sends the Linux banner |
 | `scripts/open-session.sh` | Reopens a session when a banner is clicked |
 | `scripts/load-config.sh` | Reads the config file, letting the environment win |
-| `scripts/setup-macos-icon.sh` | Optional: builds the icon bundle |
+| `scripts/setup-macos-icon.sh` | Builds the icon bundle (macOS setup) |
 | `test/run-tests.sh` | Picks the suite matching your platform |
 
 To fire a banner by hand while debugging, set `CLAUDE_NOTIFY_TEST=1` so it is
@@ -197,48 +195,31 @@ Every key also works as an environment variable prefixed `CLAUDE_NOTIFY_`
 
 ### Where the session reopens
 
-Clicking a banner reopens the session in your terminal — iTerm if that is what
-you use, otherwise Terminal — detected from the process tree when the
-notification is sent. Override it if the guess is wrong:
+Clicking a banner's **Show** button reopens the session in your terminal — iTerm
+if that is what you use, otherwise Terminal — detected from the process tree when
+the notification is sent, and reusing the tab already running that session
+instead of stacking up a window per click.
 
-```bash
-export CLAUDE_NOTIFY_TERMINAL=Terminal   # or iTerm, or vscode
-```
-
-The session reopens in a real terminal — Terminal or iTerm, whichever you use —
-and reuses the tab already open for that session instead of stacking up a window
-per click.
+Show, rather than the banner body, because the two cannot coexist on macOS: the
+`-sender` flag that puts the Claude icon on a banner also swallows the body
+click. The icon is worth more than the extra hover, so that is the trade this
+plugin makes.
 
 Running Claude Code inside VS Code is the one case where the host is
 deliberately not followed: VS Code has no scriptable terminal, so the best it
 could do is open the folder and leave you to paste the command. Resuming the
-conversation is the point, so a VS Code session still gets a terminal. If you
-would rather it just opened the folder, set
-`CLAUDE_NOTIFY_TERMINAL=vscode`.
+conversation is the point, so a VS Code session still gets a real terminal. Set
+`TERMINAL=vscode` in the config file if you would rather it opened the folder.
 
-A resumed session is a *separate* Claude Code process reading the same
-transcript, not a live view of the one you left. If you keep talking in the
-original window, the resumed one will not see those messages — it shows the
-conversation as of the moment it started. Resuming again picks up the rest.
+Two things worth knowing about a resumed session:
 
-### The icon costs you the click
-
-macOS will not give you both. `terminal-notifier`'s `-sender` is what puts the
-Claude icon on the banner, and it takes the click with it: with `-sender`
-present, `-execute` is ignored, clicking the banner *body* does nothing, and
-only the **Show** action button — which you have to hover to reveal — resumes
-the session. Verified directly; it is a platform constraint, not a bug here.
-
-Which way round you get depends on one thing: whether the icon bundle is
-installed. With it, the banner carries the Claude icon and **Show** is the way
-back in. Without it, the whole banner is clickable but shows the terminal's
-icon. Run `setup-macos-icon.sh remove` to switch.
-
-The icon path has a second cost worth knowing: the click target lives in a
-single state file that each notification overwrites, so with two sessions
-running, clicking an *older* banner opens whichever notified most recently —
-macOS does not say which banner was clicked. Without the bundle every click is
-exact.
+- It is a *separate* Claude Code process reading the same transcript, not a live
+  view of the one you left. Keep talking in the original window and the resumed
+  one will not see those messages — it shows the conversation as of the moment
+  it started. Resuming again picks up the rest.
+- With several sessions notifying, the click target is whichever notified most
+  recently: macOS does not tell the app which banner was clicked, so clicking an
+  older banner opens the newer session.
 
 ## Uninstall
 

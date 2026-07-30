@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Optional macOS extra: build the tiny .app bundle that gives the banner a
-# Claude icon (macOS takes the banner icon from the sending application, and
-# ignores terminal-notifier's -appIcon/-contentImage for that slot).
+# Build the tiny .app bundle that gives the banner its Claude icon (macOS takes
+# the banner icon from the sending application, and ignores terminal-notifier's
+# -appIcon/-contentImage for that slot). Part of the macOS setup.
 #
 #   setup-macos-icon.sh            build it, then send a test banner
 #   setup-macos-icon.sh remove     delete it (banners keep working, no icon)
 #
-# Notifications work without this. The trade it makes: -sender swallows the
-# click on the banner body, so the banner's "Show" button becomes the way to
-# resume. Installing the bundle is the whole opt-in — there is no separate flag.
+# Notifications still work without it — the plugin falls back to the terminal's
+# own icon, and then the whole banner is clickable, because the -sender flag that
+# carries a custom icon also swallows the body click. With the bundle installed,
+# "Show" is how you resume.
 set -euo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
