@@ -4,6 +4,35 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.0
+
+### Added
+
+- Clicking a banner reopens the session in your own terminal — iTerm if that is
+  what you use, otherwise Terminal — detected from the process tree when the
+  notification is sent.
+- A second click focuses the tab already running that session instead of
+  opening another window, matched by tty.
+
+### Changed
+
+- The Claude icon is now the default. It and a clickable banner body cannot
+  coexist on macOS (`-sender` swallows the click), so resuming happens through
+  the banner's *Show* button; remove the icon bundle for a fully clickable
+  banner instead.
+- Running Claude Code inside VS Code still resumes into a real terminal: VS Code
+  has no scriptable terminal, and resuming the conversation matters more than
+  landing in the editor. `CLAUDE_NOTIFY_TERMINAL=vscode` opts into folder-only.
+
+### Fixed
+
+- The icon bundle is a thin launcher for `open-session.sh` rather than a second
+  copy of the same logic, which had already drifted out of step.
+- The click handler restores `PATH`, so `code` and `terminal-notifier` resolve
+  instead of being reported as missing.
+- A vanished session folder is reported instead of opening a terminal on a bare
+  `cd` failure.
+
 ## 1.0.2
 
 ### Added
