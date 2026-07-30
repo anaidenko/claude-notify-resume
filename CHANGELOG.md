@@ -4,6 +4,14 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.2
+
+Documentation only — no change to how the plugin behaves.
+
+- README explains marketplace auto-update, so new versions arrive without
+  running two commands by hand.
+- Added issue templates.
+
 ## 1.1.1
 
 No functional change — the plugin behaves exactly as 1.1.0.
