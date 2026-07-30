@@ -20,6 +20,5 @@
 # set this only if the guess is wrong.
 #   Terminal — Terminal.app (the fallback)
 #   iTerm    — iTerm2
-#   vscode   — open the folder in VS Code instead of resuming in a terminal
 #
 # TERMINAL=iTerm

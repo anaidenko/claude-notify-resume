@@ -19,6 +19,7 @@
         "test:debian": "./test/run-linux-tests.sh debian:bookworm-slim",
         "test:ubuntu": "./test/run-linux-tests.sh ubuntu:24.04",
         "lint": "command -v shellcheck >/dev/null || { echo 'shellcheck not installed: brew install shellcheck'; exit 1; }; shellcheck scripts/*.sh test/*.sh",
-        "notify:demo": "./test/demo-notification.sh"
+        "notify:demo": "./test/demo-notification.sh",
+        "test:click": "./test/open-session-suite.sh"
     }
 }

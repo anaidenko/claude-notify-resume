@@ -16,7 +16,10 @@ CWD="${2:-}"
 # A click runs with a minimal PATH — the same trap notify.sh works around.
 # Without this, `code` and `terminal-notifier` are both missing and the handler
 # reports them as "not installed" on a machine where they plainly are.
-PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+# CLAUDE_NOTIFY_BIN first so the test suite can shadow `code`, `osascript` and
+# `terminal-notifier` — the Homebrew paths below deliberately outrank whatever
+# the caller had, so a plain PATH prepend cannot win.
+PATH="${CLAUDE_NOTIFY_BIN:+$CLAUDE_NOTIFY_BIN:}/opt/homebrew/bin:/usr/local/bin:$PATH"
 export PATH
 
 RESUME="cd $(printf '%q' "$CWD") && claude --resume $(printf '%q' "$SESSION_ID")"
@@ -58,30 +61,12 @@ fi
 # process tree at notify time — TERM_PROGRAM is empty in the hook environment)
 # picks iTerm over Terminal so the session lands in the terminal you use.
 #
-# VS Code is deliberately NOT followed here: it has no scriptable terminal, so
-# the best it could do is open the folder and leave you to paste the command.
-# Resuming the conversation is the point, so a VS Code host still gets a real
-# terminal. `CLAUDE_NOTIFY_TERMINAL=vscode` opts back into folder-only.
+# An editor host resolves to a terminal: VS Code has no scriptable terminal, so
+# the most it could do is open the folder and leave you to paste the command —
+# which is not resuming the conversation, the one thing this exists to do.
 HOST="${CLAUDE_NOTIFY_HOST:-}"
 [ "$HOST" = "vscode" ] && HOST="Terminal"
 TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-${HOST:-Terminal}}"
-
-if [ "$TERMINAL_APP" = "vscode" ] || [ "$TERMINAL_APP" = "code" ]; then
-    # VS Code has no scriptable terminal, so this opens the folder and leaves
-    # the resume command on the clipboard rather than pretending otherwise.
-    # `code` is installed by "Shell Command: Install 'code' command in PATH".
-    if command -v code >/dev/null 2>&1; then
-        # No flag: VS Code raises the window already holding this folder, and
-        # opens a new one only when none has it. -n would always create a new
-        # window; -r would hijack whichever window was last active.
-        code "$CWD" >/dev/null 2>&1
-        printf '%s' "$RESUME" | pbcopy 2>/dev/null
-        notify "Session opened in VS Code" "Resume command copied — paste it into the terminal." "Glass"
-        exit 0
-    fi
-    notify "VS Code CLI not found" "Install it via Shell Command: Install 'code' command in PATH."
-    exit 0
-fi
 
 if [ "$TERMINAL_APP" = "iTerm" ] || [ "$TERMINAL_APP" = "iTerm2" ]; then
     if [ -n "$EXISTING_TTY" ]; then

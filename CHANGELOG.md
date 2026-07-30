@@ -4,6 +4,21 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.8
+
+### Changed
+
+- The folder-only `TERMINAL=vscode` mode is gone. Opening a folder and copying a
+  command to the clipboard is not resuming a conversation, and a session hosted
+  in VS Code already resumed in a real terminal — so the mode only existed to be
+  a worse version of the default.
+
+### Added
+
+- Tests for the click handler (`test/open-session-suite.sh`, wired into
+  `npm test` and CI) — the path where the last two bugs hid, previously covered
+  only by hand.
+
 ## 1.1.7
 
 ### Fixed

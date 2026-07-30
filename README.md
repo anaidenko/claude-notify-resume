@@ -177,14 +177,14 @@ you do want to change something, write `~/.claude/claude-notify-resume.conf` (co
 # Statuses you would rather not be told about
 MUTE=Replied,Waiting for you
 
-# Force a terminal instead of the detected one: Terminal, iTerm, or vscode
+# Force a terminal instead of the detected one: Terminal or iTerm
 TERMINAL=iTerm
 ```
 
 | Key | Effect |
 | --- | --- |
 | `MUTE` | Comma-separated statuses to drop |
-| `TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
+| `TERMINAL` | Force `Terminal` or `iTerm` instead of the detected one |
 
 `Replied` fires on **every** reply — the point when you have walked away, noise
 when you are watching the chat. Muting it keeps the ones that actually need you.
@@ -207,11 +207,9 @@ Show, rather than the banner body, because the two cannot coexist on macOS: the
 click. The icon is worth more than the extra hover, so that is the trade this
 plugin makes.
 
-Running Claude Code inside VS Code is the one case where the host is
-deliberately not followed: VS Code has no scriptable terminal, so the best it
-could do is open the folder and leave you to paste the command. Resuming the
-conversation is the point, so a VS Code session still gets a real terminal. Set
-`TERMINAL=vscode` in the config file if you would rather it opened the folder.
+A session hosted in VS Code resumes in a real terminal too. VS Code has no
+scriptable terminal, so the most a plugin could do there is open the folder and
+leave you to paste the command — which is not resuming the conversation.
 
 Two things worth knowing about a resumed session:
 

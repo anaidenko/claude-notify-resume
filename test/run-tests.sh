@@ -22,6 +22,9 @@ case "$(uname -s)" in
         printf '═══ macOS (host)\n'
         ./test/run-macos-tests.sh || exit 1
 
+        printf '\n═══ Click handler (host)\n'
+        ./test/open-session-suite.sh || exit 1
+
         if [ "$ALL" -eq 1 ]; then
             printf '\n═══ Linux (Docker)\n'
             ./test/run-linux-tests.sh || exit 1

@@ -47,3 +47,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: ./test/run-macos-tests.sh
+      - run: ./test/open-session-suite.sh
