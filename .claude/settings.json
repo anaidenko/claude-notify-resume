@@ -1,0 +1,27 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(npm test)",
+            "Bash(npm run test:all)",
+            "Bash(npm run test:macos)",
+            "Bash(npm run test:linux)",
+            "Bash(npm run test:click)",
+            "Bash(npm run lint)",
+            "Bash(shellcheck *)",
+            "Bash(./test/*.sh)"
+        ]
+    },
+    "enabledPlugins": {
+        "skill-creator@claude-plugins-official": true,
+        "superpowers@claude-plugins-official": true,
+        "claude-md-management@claude-plugins-official": true
+    },
+    "extraKnownMarketplaces": {
+        "superpowers-marketplace": {
+            "source": {
+                "source": "github",
+                "repo": "obra/superpowers-marketplace"
+            }
+        }
+    }
+}
