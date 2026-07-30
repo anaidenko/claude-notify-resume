@@ -56,6 +56,11 @@ do not "improve" error handling by surfacing errors to the user.
 - **The click handler gets a minimal PATH too,** not just the hook. Missing
   this made `open-session.sh` report "VS Code CLI not found" on a machine where
   `code` was installed — it simply was not on the click's PATH.
+- **The state paths still say `claude-code-notify`** — `~/.claude/claude-code-notify`
+  and `~/.local/state/claude-code-notify` — and that is deliberate. The plugin was
+  renamed to `claude-notify-resume`, but renaming those directories would orphan
+  the click state and icon bundle of every existing install for no user-visible
+  gain. Same reasoning as `BUNDLE_ID`: internal identifiers stay put.
 - **Old banners carry the command that was current when they were sent.** A
   banner sitting in Notification Centre still runs the *old* click action, so
   clear them (`terminal-notifier -remove ALL`) before testing a change to it,

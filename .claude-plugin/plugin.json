@@ -1,13 +1,13 @@
 {
-  "name": "claude-code-notify",
+  "name": "claude-notify-resume",
   "version": "1.0.2",
   "description": "Desktop notifications that name the conversation they came from — and reopen it when clicked. Titles each banner with the chat's own AI-generated name, so parallel sessions stay distinguishable.",
   "author": {
     "name": "Andrii Naidenko",
     "url": "https://github.com/anaidenko"
   },
-  "homepage": "https://github.com/anaidenko/claude-code-notify",
-  "repository": "https://github.com/anaidenko/claude-code-notify",
+  "homepage": "https://github.com/anaidenko/claude-notify-resume",
+  "repository": "https://github.com/anaidenko/claude-notify-resume",
   "license": "MIT",
   "keywords": [
     "claude-code",

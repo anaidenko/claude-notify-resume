@@ -1,4 +1,4 @@
-# claude-code-notify
+# claude-notify-resume
 
 Desktop notifications for [Claude Code](https://claude.com/claude-code) that
 tell you **which conversation** finished — and take you back into it.
@@ -44,8 +44,8 @@ Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 ## Install
 
 ```
-/plugin marketplace add anaidenko/claude-code-notify
-/plugin install claude-code-notify
+/plugin marketplace add anaidenko/claude-notify-resume
+/plugin install claude-notify-resume
 ```
 
 Restart Claude Code — hook config is read at startup.
@@ -62,7 +62,7 @@ have the Claude icon and accept that only the **Show** button resumes, build
 the icon bundle and opt in:
 
 ```bash
-~/.claude/plugins/cache/anaidenko/claude-code-notify/*/scripts/setup-macos-icon.sh
+~/.claude/plugins/cache/anaidenko/claude-notify-resume/*/scripts/setup-macos-icon.sh
 export CLAUDE_NOTIFY_ICON=1
 ```
 
@@ -167,6 +167,28 @@ The marker is `TEST ·` rather than `[TEST]` on purpose: a `-title` starting wit
 default title of "Terminal" — the banner still shows, just not the title you
 passed.
 
+### Configuration
+
+Every option is an environment variable, and the reliable place to set them is
+the `env` block of `~/.claude/settings.json` — those reach the hooks whatever
+launched Claude Code. Exporting from `~/.zshrc` only works for sessions started
+from a shell that read it, so a VS Code session would silently ignore it.
+
+```json
+{
+  "env": {
+    "CLAUDE_NOTIFY_ICON": "1",
+    "CLAUDE_NOTIFY_TERMINAL": "iTerm"
+  }
+}
+```
+
+| Variable | Effect |
+| --- | --- |
+| `CLAUDE_NOTIFY_ICON=1` | Show the Claude icon, accepting that only *Show* resumes |
+| `CLAUDE_NOTIFY_TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
+| `CLAUDE_NOTIFY_TEST=1` | Prefix the banner `TEST ·` (for debugging by hand) |
+
 ### Where the session reopens
 
 Clicking a banner reopens the session in your terminal — iTerm if that is what
@@ -218,7 +240,7 @@ has neither problem — every click is exact.
 ## Uninstall
 
 ```
-/plugin uninstall claude-code-notify
+/plugin uninstall claude-notify-resume
 ```
 
 Then, if you built the icon bundle: `scripts/setup-macos-icon.sh remove`

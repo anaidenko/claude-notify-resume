@@ -22,7 +22,7 @@ if ! command -v notify-send >/dev/null 2>&1; then
     if [ ! -f "$NOTICE" ]; then
         mkdir -p "$(dirname "$NOTICE")" 2>/dev/null &&
             : >"$NOTICE" 2>/dev/null &&
-            printf 'claude-code-notify: notify-send not found, so no banners will appear.\n  Install libnotify:  sudo apt install libnotify-bin   (or your distro'\''s package)\n  This notice is shown once.\n' >&2
+            printf 'claude-notify-resume: notify-send not found, so no banners will appear.\n  Install libnotify:  sudo apt install libnotify-bin   (or your distro'\''s package)\n  This notice is shown once.\n' >&2
     fi
     exit 0
 fi

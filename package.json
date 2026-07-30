@@ -1,14 +1,14 @@
 {
-    "name": "claude-code-notify",
+    "name": "claude-notify-resume",
     "description": "Desktop notifications for Claude Code that name the conversation they came from — and reopen it when clicked.",
     "private": true,
     "//": "No version field on purpose: .claude-plugin/plugin.json is the single source of truth, and a second copy here would drift.",
     "license": "MIT",
     "author": "Andrii Naidenko",
-    "homepage": "https://github.com/anaidenko/claude-code-notify",
+    "homepage": "https://github.com/anaidenko/claude-notify-resume",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/anaidenko/claude-code-notify.git"
+        "url": "git+https://github.com/anaidenko/claude-notify-resume.git"
     },
     "scripts": {
         "test": "./test/run-tests.sh",
