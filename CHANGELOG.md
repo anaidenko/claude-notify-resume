@@ -4,6 +4,18 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.3
+
+Documentation only.
+
+- Install and update instructions use the `claude plugin` CLI, which reports
+  what it did; the slash-command equivalents are noted alongside.
+- Commands name the marketplace (`claude-notify-resume@anaidenko`), so they stay
+  unambiguous now that a similarly named plugin exists elsewhere.
+- The icon-bundle path picks the newest cached version instead of globbing every
+  installed one — with two versions cached, the glob expanded to two paths and
+  `setup-macos-icon.sh remove` silently ran the install flow instead.
+
 ## 1.1.2
 
 Documentation only — no change to how the plugin behaves.

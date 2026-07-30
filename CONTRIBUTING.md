@@ -93,7 +93,8 @@ reachable** — push alone leaves existing installs on the cached copy.
 
 1. Bump `version` in `.claude-plugin/plugin.json` (semver).
 2. Commit and push; tag the release (`git tag v1.1.0 && git push --tags`).
-3. Users pick it up with `/plugin update claude-notify-resume`.
+3. Users on auto-update get it automatically; others run
+   `claude plugin marketplace update anaidenko && claude plugin update claude-notify-resume@anaidenko`.
 
 That field is the only place a version lives — `package.json` deliberately has
 none, so the two cannot drift.

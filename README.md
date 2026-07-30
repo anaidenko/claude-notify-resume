@@ -44,12 +44,16 @@ Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 
 ## Install
 
-```
-/plugin marketplace add anaidenko/claude-notify-resume
-/plugin install claude-notify-resume
+```bash
+claude plugin marketplace add anaidenko/claude-notify-resume
+claude plugin install claude-notify-resume@anaidenko
 ```
 
-Restart Claude Code — hook config is read at startup.
+The same thing works from inside a session as `/plugin marketplace add …` and
+`/plugin install claude-notify-resume@anaidenko`; the CLI is shown here because
+it prints what it did, which matters when something goes wrong.
+
+Restart Claude Code afterwards — hook config is read at startup.
 
 Third-party marketplaces do not refresh themselves by default, so turn on
 auto-update once and new versions arrive on their own: `/plugin` → **Marketplaces**
@@ -58,9 +62,9 @@ after a session starts and prompts you to `/reload-plugins`.
 
 Without it, updating is two commands:
 
-```
-/plugin marketplace update anaidenko
-/plugin update claude-notify-resume
+```bash
+claude plugin marketplace update anaidenko
+claude plugin update claude-notify-resume@anaidenko
 ```
 
 **macOS** works out of the box via AppleScript. For click-to-resume, install
@@ -73,7 +77,7 @@ brew install terminal-notifier
 Then build the icon bundle, which gives the banner the Claude icon:
 
 ```bash
-~/.claude/plugins/cache/anaidenko/claude-notify-resume/*/scripts/setup-macos-icon.sh
+"$(ls -d ~/.claude/plugins/cache/anaidenko/claude-notify-resume/*/ | sort -V | tail -1)scripts/setup-macos-icon.sh"
 ```
 
 With the bundle installed you resume via the banner's **Show** button; skip it
@@ -235,8 +239,8 @@ exact.
 
 ## Uninstall
 
-```
-/plugin uninstall claude-notify-resume
+```bash
+claude plugin uninstall claude-notify-resume@anaidenko
 ```
 
 Then, if you built the icon bundle: `scripts/setup-macos-icon.sh remove`
