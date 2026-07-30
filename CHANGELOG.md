@@ -4,6 +4,20 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.1.10
+
+### Fixed
+
+- Clicking a banner while the terminal was already open no longer leaves an
+  extra empty window behind. The cold-start guard asked
+  `application "Terminal" is running`, which answers from the caller's Launch
+  Services session and reports `false` for a visible Terminal whenever the
+  caller's environment is stripped — as the click handler's is. Every warm
+  click therefore took the cold-start branch and opened the very window that
+  branch exists to prevent. The probe is now `pgrep`, which asks the kernel.
+- The same guard for iTerm never matched at all: the process is `iTerm2` while
+  the app is `iTerm`, so every iTerm start looked cold.
+
 ## 1.1.9
 
 The icon and the click are no longer enemies.

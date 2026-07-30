@@ -87,8 +87,23 @@ do not "improve" error handling by surfacing errors to the user.
   newest `cache/*/claude-notify-resume/*/scripts/` at click time.
 - **Old banners carry the command that was current when they were sent.** A
   banner sitting in Notification Centre still runs the *old* click action, so
-  clear them (`terminal-notifier -remove ALL`) before testing a change to it,
-  or you will debug a fix that is already in place.
+  clear them before testing a change to it, or you will debug a fix that is
+  already in place. `terminal-notifier -remove ALL` covers less than it sounds
+  like: `ALL` is every group posted through terminal-notifier — including other
+  projects' banners, since they all share the `fr.julienxx.oss.terminal-notifier`
+  bundle — while banners from the native bundle (the main path since 1.1.9) are
+  not its to remove and `-list ALL` does not even see them. Clear those by hand
+  in Notification Centre. Per-session removal is `-remove claude-<session-id>`
+  (the group set in `notify-macos.sh`); there is no wildcard.
+- **`application "X" is running` lies in the click handler's environment.** It
+  answers from the caller's Launch Services session, and both the hook and the
+  click run stripped, so it returns `false` for a Terminal that is plainly on
+  screen. The cold-start branch then fired on a *warm* start and produced the
+  extra empty window it exists to prevent — the bug survived a release because
+  the suite stubbed the probe's answer instead of its truthfulness. Use
+  `pgrep -x`, which asks the kernel and launches nothing. Note the process is
+  `iTerm2` even though the app is `iTerm`; matching the app name finds nothing
+  and makes every start look cold.
 
 ## Keeping this file honest
 
@@ -121,6 +136,13 @@ plugin installed. Add a test with any new failure path — the Linux icon path
 was silently broken precisely because nothing asserted on it.
 
 To see a real banner rather than assert on arguments: `npm run notify:demo`.
+
+## Planning a change
+
+For anything larger than a one-file edit, `/plan-task` writes a structured plan to
+`.claude/plans/` before any code is touched — see
+[.claude/skills/plan-task/SKILL.md](.claude/skills/plan-task/SKILL.md). Plans are
+gitignored personal working documents; commit one only when asked.
 
 ## Platform reality
 

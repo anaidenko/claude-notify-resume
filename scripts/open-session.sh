@@ -91,8 +91,11 @@ EOF
         [ "$FOCUSED" = "yes" ] && exit 0
     fi
     # Same startup-window story as Terminal: launching iTerm opens one window
-    # already, so only create another when iTerm was running before us.
-    ITERM_WAS_RUNNING="$(osascript -e 'application "iTerm" is running' </dev/null 2>/dev/null)"
+    # already, so only create another when iTerm was running before us. Probed
+    # with `pgrep` for the reason spelled out at the Terminal branch below.
+    # The process is `iTerm2` even though the app is `iTerm`, so an -x match on
+    # the app name finds nothing and every start would look cold.
+    pgrep -x iTerm2 >/dev/null 2>&1 && ITERM_WAS_RUNNING=true || ITERM_WAS_RUNNING=false
     if [ "$ITERM_WAS_RUNNING" = "true" ]; then
         osascript >/dev/null 2>&1 <<EOF
 tell application "iTerm"
@@ -145,9 +148,15 @@ fi
 
 # Launching Terminal creates its startup window; a `do script` on top of that
 # yields a pair — one empty, one ours. When Terminal was not already running,
-# run the command in that startup window instead. (`application X is running`
-# does not itself launch X.)
-TERMINAL_WAS_RUNNING="$(osascript -e 'application "Terminal" is running' </dev/null 2>/dev/null)"
+# run the command in that startup window instead.
+#
+# The obvious probe, `application "Terminal" is running`, answers from the
+# caller's Launch Services session, and the click handler runs in the same
+# stripped environment as the hook — there it reports `false` for a Terminal
+# that is plainly on screen, so the cold-start branch fired on a warm start and
+# produced the empty window it exists to prevent. `pgrep` asks the kernel for a
+# process and is not subject to that; it does not launch anything either.
+pgrep -x Terminal >/dev/null 2>&1 && TERMINAL_WAS_RUNNING=true || TERMINAL_WAS_RUNNING=false
 if [ "$TERMINAL_WAS_RUNNING" = "true" ]; then
     osascript >/dev/null 2>&1 <<EOF
 tell application "Terminal"

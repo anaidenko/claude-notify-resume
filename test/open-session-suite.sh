@@ -140,5 +140,49 @@ contains "resumes the right session" "claude --resume sess-42" "$SENT"
 # backslash — so the script that reaches osascript carries `My\\ Project`.
 contains "quotes a cwd with spaces" 'My\\ Project' "$SENT"
 
+printf '\nCold start\n'
+
+# Launching a terminal opens its startup window; a `do script` on top of that is
+# a second window, so a cold start has to reuse the startup window and a warm
+# one must not. The probe decides which — and it once answered from Launch
+# Services, which reports "not running" for a visible Terminal whenever the
+# caller's environment is stripped the way the click handler's is. That sent
+# every warm click down the cold branch, i.e. the empty window this guards
+# against. `pgrep` is stubbed here to pin each branch to the intended answer.
+pgrep_stub() {
+    cat >"$STUB_BIN/pgrep" <<STUB
+#!/bin/bash
+exit $1
+STUB
+    chmod +x "$STUB_BIN/pgrep"
+}
+
+pgrep_stub 0 # terminal already running -> warm
+SENT="$(run "$REPO_ROOT/scripts/open-session.sh" "s1" "$WORK")"
+case "$SENT" in
+    *"in front window"*)
+        printf '  FAIL  a running Terminal must open its own window\n'
+        FAIL=$((FAIL + 1))
+        ;;
+    *)
+        printf '  ok    a running Terminal opens its own window\n'
+        PASS=$((PASS + 1))
+        ;;
+esac
+
+pgrep_stub 1 # terminal not running -> cold, reuse the startup window
+SENT="$(run "$REPO_ROOT/scripts/open-session.sh" "s1" "$WORK")"
+contains "a cold Terminal reuses the startup window" "in front window" "$SENT"
+
+pgrep_stub 0
+SENT="$(run CLAUDE_NOTIFY_HOST=iTerm "$REPO_ROOT/scripts/open-session.sh" "s1" "$WORK")"
+contains "a running iTerm creates a window" "create window" "$SENT"
+
+pgrep_stub 1
+SENT="$(run CLAUDE_NOTIFY_HOST=iTerm "$REPO_ROOT/scripts/open-session.sh" "s1" "$WORK")"
+contains "a cold iTerm reuses the startup window" "current session of current window" "$SENT"
+
+rm -f "$STUB_BIN/pgrep"
+
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
