@@ -8,6 +8,10 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ### Added
 
+- `MUTE` drops the statuses you would rather not hear about — e.g.
+  `MUTE=Replied,Waiting for you` keeps only the banners that need you.
+- Settings live in `~/.claude/claude-notify-resume.conf` (see the example file),
+  with `CLAUDE_NOTIFY_*` environment variables as one-off overrides.
 - Clicking a banner reopens the session in your own terminal — iTerm if that is
   what you use, otherwise Terminal — detected from the process tree when the
   notification is sent.
