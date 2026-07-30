@@ -65,6 +65,10 @@ do not "improve" error handling by surfacing errors to the user.
   which flags `A && B || C` (SC2015) where 0.11.0 stays quiet — a lint that was
   clean locally failed on the first CI run. The workflow fetches 0.11.0 directly
   and then runs `npm run lint`, so CI and a developer run the same check.
+- **`git push --tags` pushes only tags, not the branch.** It left v1.1.2–v1.1.5
+  on GitHub pointing at commits that had never been pushed, while `main` still
+  showed 1.1.1 — so the marketplace kept serving the old version. Use
+  `git push --follow-tags`.
 - **Old banners carry the command that was current when they were sent.** A
   banner sitting in Notification Centre still runs the *old* click action, so
   clear them (`terminal-notifier -remove ALL`) before testing a change to it,
