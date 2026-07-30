@@ -188,6 +188,11 @@ conversation is the point, so a VS Code session still gets a terminal. If you
 would rather it just opened the folder, set
 `CLAUDE_NOTIFY_TERMINAL=vscode`.
 
+A resumed session is a *separate* Claude Code process reading the same
+transcript, not a live view of the one you left. If you keep talking in the
+original window, the resumed one will not see those messages — it shows the
+conversation as of the moment it started. Resuming again picks up the rest.
+
 ### The icon costs you the click
 
 macOS will not give you both. `terminal-notifier`'s `-sender` is what puts the
