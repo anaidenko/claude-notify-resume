@@ -1,12 +1,13 @@
 # claude-notify-resume
 
 Desktop notifications for [Claude Code](https://claude.com/claude-code) that
-tell you **which conversation** finished — and take you back into it.
+tell you **which conversation** replied — or is waiting on you — and take you
+back into it.
 
 <img src="assets/banner-permission-needed.png" alt="A macOS notification titled &quot;Permission needed&quot;, with the body &quot;Migrate the auth service to OAuth&quot; — the name of the chat that is waiting." width="500">
 
 *The body is the chat's own name, so you know which session is asking.
-(Shown with the optional icon enabled — see [the trade-off](#the-icon-costs-you-the-click).)*
+(Shown with the icon bundle installed — see [the trade-off](#the-icon-costs-you-the-click).)*
 
 Run several Claude sessions at once and the usual notification is useless: five
 identical banners saying "Claude Code is done", with no clue which repo, which
