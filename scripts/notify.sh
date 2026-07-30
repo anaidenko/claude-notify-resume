@@ -10,6 +10,26 @@ set -uo pipefail
 
 STATUS="${1:-Claude Code}"
 
+# CLAUDE_NOTIFY_MUTE is a comma-separated list of statuses to drop, so anyone
+# who finds a banner on every reply too chatty can keep just the ones that need
+# them — e.g. CLAUDE_NOTIFY_MUTE="Replied,Waiting for you". Checked first, before
+# any work: a muted status should cost nothing.
+#
+# Matching ignores case and surrounding spaces, because this list is written by
+# hand. Matching the bare status (not the TEST · form) keeps a muted status muted
+# while debugging.
+if [ -n "${CLAUDE_NOTIFY_MUTE:-}" ]; then
+    mute_probe="$(printf '%s' "$STATUS" | tr '[:upper:]' '[:lower:]')"
+    IFS=','
+    for muted in $CLAUDE_NOTIFY_MUTE; do
+        # Trim: "a, b" must match " b" as well as "b".
+        muted="$(printf '%s' "$muted" | tr '[:upper:]' '[:lower:]' |
+            sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+        [ -n "$muted" ] && [ "$muted" = "$mute_probe" ] && exit 0
+    done
+    unset IFS
+fi
+
 # Set CLAUDE_NOTIFY_TEST=1 to mark a banner as a manual test, so a real
 # notification is never mistaken for one while debugging.
 #

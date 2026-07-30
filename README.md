@@ -185,8 +185,20 @@ from a shell that read it, so a VS Code session would silently ignore it.
 
 | Variable | Effect |
 | --- | --- |
+| `CLAUDE_NOTIFY_MUTE` | Comma-separated statuses to drop, e.g. `Replied,Waiting for you` |
 | `CLAUDE_NOTIFY_TERMINAL` | Force `Terminal`, `iTerm`, or `vscode` instead of the detected host |
 | `CLAUDE_NOTIFY_TEST=1` | Prefix the banner `TEST ·` (for debugging by hand) |
+
+`Replied` fires on **every** reply, which is the point when you have walked
+away and noise when you are watching the chat. Mute what you do not want and
+keep the ones that need you:
+
+```json
+{ "env": { "CLAUDE_NOTIFY_MUTE": "Replied,Waiting for you" } }
+```
+
+Status names are matched case-insensitively, spaces around commas are fine, and
+an unknown name is simply ignored.
 
 Nothing here is required — the defaults are what the plugin is tuned for.
 

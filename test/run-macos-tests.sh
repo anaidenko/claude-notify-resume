@@ -182,5 +182,28 @@ else
 fi
 rm -rf "$QUOTE_PARENT"
 
+printf '\nMuting\n'
+
+# CLAUDE_NOTIFY_MUTE drops the listed statuses. The list is hand-written, so
+# case and stray spaces must not matter — and a partial word must NOT match, or
+# muting "Repl" would silently swallow "Replied".
+mute_probe() {
+    local name="$1" mute="$2" status="$3" want="$4"
+    : >"$STUB_LOG"
+    payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+        CLAUDE_NOTIFY_MUTE="$mute" "$REPO_ROOT/scripts/notify.sh" "$status" >/dev/null 2>&1
+    local got
+    if [ -s "$STUB_LOG" ]; then got="sent"; else got="muted"; fi
+    check "$name" "$want" "$got"
+}
+
+mute_probe "exact match is muted"        "Replied"                  "Replied"           "muted"
+mute_probe "other statuses still fire"   "Replied"                  "Permission needed" "sent"
+mute_probe "case is ignored"             "replied"                  "Replied"           "muted"
+mute_probe "spaces around commas"        "Replied, Waiting for you" "Waiting for you"   "muted"
+mute_probe "later entry also matches"    "Input needed,Replied"     "Replied"           "muted"
+mute_probe "empty list mutes nothing"    ""                         "Replied"           "sent"
+mute_probe "partial word does not match" "Repl"                     "Replied"           "sent"
+
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
