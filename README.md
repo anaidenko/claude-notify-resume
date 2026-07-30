@@ -169,8 +169,8 @@ passed.
 
 ### Where the session reopens
 
-Clicking a banner reopens the session in the app Claude Code is running under —
-VS Code, iTerm or Terminal — detected from the process tree when the
+Clicking a banner reopens the session in your terminal — iTerm if that is what
+you use, otherwise Terminal — detected from the process tree when the
 notification is sent. Override it if the guess is wrong:
 
 ```bash
