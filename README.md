@@ -72,6 +72,10 @@ That script ends by sending a test banner. **If you do not see it**, open
 notifications*: a newly created bundle starts switched off, and macOS then
 discards its banners with no error and a success exit code.
 
+**Linux** needs nothing beyond `notify-send`, which desktop distros ship with
+libnotify preinstalled. If yours does not: `sudo apt install libnotify-bin`
+(or your distro's package) — the plugin says so once if it is missing.
+
 ## Platform support
 
 | Platform | Status | Notes |
@@ -86,42 +90,16 @@ exits 0 and says nothing.
 
 ```bash
 npm test              # native suite for your platform
-npm run test:all      # + other platforms, where possible (Docker)
-npm run test:linux    # Linux suites in Docker (Debian + Ubuntu)
-npm run notify:demo   # send one real banner, marked "TEST ·"
-npm run lint          # shellcheck
+npm run test:all      # + Linux suites and real-daemon delivery via Docker
+npm run notify:demo   # send one real banner
 ```
 
-No dependencies and nothing to install — `package.json` exists only to give
-the scripts a familiar entry point. The suites run the scripts straight out of
-the repo, so none of this needs the plugin installed.
-
-`npm test` picks the suite that matches your machine: on Linux it runs natively
-against your own `notify-send`, no Docker involved. From macOS, Docker is how
-the Linux path gets exercised at all:
-
-```bash
-./test/run-linux-tests.sh                 # Debian + Ubuntu
-./test/run-linux-tests.sh ubuntu:24.04    # one distro
-./test/run-linux-tests.sh debian:trixie-slim   # or any other apt-based image
-```
-
-No banner is ever delivered — the notifier binaries are shadowed by stubs that
-record their arguments. What the suite verifies is everything up to that call:
-transcript parsing, the chat name, platform dispatch, the exact arguments
-`notify-send` receives, and that every failure path still exits 0.
-
-Delivery itself is covered separately, by a container running a real D-Bus
-session and a real notification daemon:
-
-```bash
-npm run test:dbus
-```
-
-It reads back what the daemon received — app name, icon path, title and body —
-so "the icon reaches the desktop" is an assertion rather than an assumption.
-
-Verified on **Debian 12 (bookworm)** and **Ubuntu 24.04**.
+The suites run the scripts straight out of the repo — no install, no
+dependencies — and never deliver a banner: the notifier binaries are shadowed by
+stubs that record their arguments. Delivery itself is verified separately
+against a real notification daemon over D-Bus (`npm run test:dbus`). Verified on
+**Debian 12** and **Ubuntu 24.04**; per-suite details are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## How it works
 
@@ -194,11 +172,8 @@ when you are watching the chat. Muting it keeps the ones that actually need you.
 Status names are matched case-insensitively, spaces around commas are fine, and
 an unknown name is ignored. A malformed file cannot break the hook.
 
-Every key also works as an environment variable prefixed `CLAUDE_NOTIFY_` (so
-`CLAUDE_NOTIFY_MUTE`), which takes precedence over the file — handy for a
-one-off. The `env` block of `settings.json` works too, but it exports into every
-process Claude Code spawns, so the file is the safer home for a permanent
-setting.
+Every key also works as an environment variable prefixed `CLAUDE_NOTIFY_`
+(e.g. `CLAUDE_NOTIFY_MUTE`), which overrides the file for a one-off.
 
 ### Where the session reopens
 
