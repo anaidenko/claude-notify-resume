@@ -116,6 +116,17 @@ do not "improve" error handling by surfacing errors to the user.
   `pgrep -x`, which asks the kernel and launches nothing. Note the process is
   `iTerm2` even though the app is `iTerm`; matching the app name finds nothing
   and makes every start look cold.
+- **The VS Code extension never emits the `Notification` hook event.** `Stop`
+  fires there, so `Replied` banners arrive and the plugin looks healthy — but
+  `Permission needed`, `Waiting for you` and every other Notification-based
+  status cannot fire in a side-panel session, and no hooks.json change will
+  help. Known Claude Code parity bug: anthropics/claude-code #59718, #31285,
+  #26925, #11156. Diagnose it from transcripts, not theories: the machine's
+  `~/.claude/projects/*/*.jsonl` showed `stop_hook_summary` records running
+  `notify.sh "Replied"` while no `Notification` hookEvent existed in any
+  transcript at all. The README states the limitation; keep it there until the
+  upstream bug closes for real (the linked issues close as duplicates, not
+  fixes).
 
 ## Keeping this file honest
 

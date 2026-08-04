@@ -42,6 +42,17 @@ under one word:
 Deliberately *not* subscribed: `auth_success`, `elicitation_complete`,
 `elicitation_response` — they announce things you just watched happen.
 
+**Known limitation — VS Code extension.** Every status except `Replied` rides
+on the `Notification` hook event, and the VS Code native extension never emits
+it — a Claude Code CLI/extension parity bug, not something a plugin can work
+around ([anthropics/claude-code#59718](https://github.com/anthropics/claude-code/issues/59718),
+[#31285](https://github.com/anthropics/claude-code/issues/31285),
+[#26925](https://github.com/anthropics/claude-code/issues/26925),
+[#11156](https://github.com/anthropics/claude-code/issues/11156)). A session in
+the VS Code side panel still gets `Replied` (the `Stop` hook fires there), but
+no `Permission needed` or `Waiting for you` banner will ever appear for it.
+Terminal sessions get all of them.
+
 ## Install
 
 ```bash
