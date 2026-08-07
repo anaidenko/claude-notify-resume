@@ -57,6 +57,18 @@ check "session id"           "s1"                             "$(printf '%s\n' "
 check "cwd"                  "/work/my-project"               "$(printf '%s\n' "$FIELDS" | sed -n 3p)"
 check "last ai-title wins"   "Fix the geofence rounding bug"  "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
 
+# A manual rename writes a custom-title record, after which the transcript
+# keeps re-emitting the old ai-title on every turn — the rename must win by
+# type, not by position.
+RENAMED=/tmp/renamed-transcript.jsonl
+cat >"$RENAMED" <<'JSONL'
+{"type":"ai-title","aiTitle":"Fix the geofence rounding bug","sessionId":"s1"}
+{"type":"custom-title","customTitle":"Geofence: the rename","sessionId":"s1"}
+{"type":"ai-title","aiTitle":"Fix the geofence rounding bug","sessionId":"s1"}
+JSONL
+FIELDS="$(payload "$RENAMED" | node "$PLUGIN_ROOT/scripts/notify-parse.js")"
+check "custom-title beats a later ai-title" "Geofence: the rename" "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
+
 FIELDS="$(payload /nonexistent.jsonl | node "$PLUGIN_ROOT/scripts/notify-parse.js")"
 check "missing transcript → empty title" "" "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
 

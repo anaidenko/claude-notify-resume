@@ -31,6 +31,11 @@ do not "improve" error handling by surfacing errors to the user.
 - **`ai-title` is an internal transcript record, not a public API.** It is how
   the banner learns the chat's name. Keep the fallback to the project directory
   name working.
+- **A manual chat rename is a `custom-title` record, not a new `ai-title`.**
+  Worse, after a rename the transcript keeps re-emitting the *old* `ai-title`
+  on every turn, *after* each `custom-title` — so "last title record wins"
+  silently reverts the rename. The parser must prefer `custom-title` by type;
+  position in the file proves nothing.
 - **Never spoof the sender with a fake, script-only bundle.** The `-sender`
   scheme swallowed the body click by design, and macOS's willingness to launch
   the fake app on click proved undocumented and flaky: it worked, then refused

@@ -84,6 +84,19 @@ FIELDS="$(payload | node "$REPO_ROOT/scripts/notify-parse.js")"
 check "session id"         "s1"                            "$(printf '%s\n' "$FIELDS" | sed -n 1p)"
 check "last ai-title wins" "Fix the geofence rounding bug" "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
 
+# A manual rename writes a custom-title record, after which the transcript
+# keeps re-emitting the old ai-title on every turn — so the rename must win by
+# type, not by position. Lives in STUB_BIN so the existing trap cleans it up.
+RENAMED_TRANSCRIPT="$STUB_BIN/renamed.jsonl"
+cat >"$RENAMED_TRANSCRIPT" <<'JSONL'
+{"type":"ai-title","aiTitle":"Fix the geofence rounding bug","sessionId":"s1"}
+{"type":"custom-title","customTitle":"Geofence: the rename","sessionId":"s1"}
+{"type":"ai-title","aiTitle":"Fix the geofence rounding bug","sessionId":"s1"}
+JSONL
+FIELDS="$(printf '{"session_id":"s1","transcript_path":"%s","cwd":"%s"}' "$RENAMED_TRANSCRIPT" "$REPO_ROOT" |
+    node "$REPO_ROOT/scripts/notify-parse.js")"
+check "custom-title beats a later ai-title" "Geofence: the rename" "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
+
 printf '\nDispatch\n'
 
 SENT="$(capture "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "Fix the geofence rounding bug" "s1" "$REPO_ROOT")"
