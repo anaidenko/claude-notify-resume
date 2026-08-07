@@ -4,6 +4,21 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.2.1
+
+### Fixed
+
+- Renaming a chat now renames its banners. The banner learns the chat's name
+  from the transcript's `ai-title` records, but a manual rename is written as a
+  different record — `custom-title` — which the parser never read, so every
+  banner kept the auto-generated name and told you nothing about which of your
+  renamed chats it came from.
+
+    Reading the last title record of either kind would not have been enough:
+    after a rename the transcript keeps re-emitting the *old* `ai-title` on
+    every turn, behind each `custom-title`. The rename now wins by record type
+    rather than by position in the file.
+
 ## 1.2.0
 
 Clicking a banner reopens the conversation it came from — reliably, and with
