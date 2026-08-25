@@ -66,6 +66,10 @@ it prints what it did, which matters when something goes wrong.
 
 Restart Claude Code afterwards — hook config is read at startup.
 
+The plugin is served from [anaidenko/claude-plugins](https://github.com/anaidenko/claude-plugins),
+a marketplace carrying several plugins — adding it once makes the others
+available too.
+
 Third-party marketplaces do not refresh themselves by default, so turn on
 auto-update once and new versions arrive on their own: `/plugin` → **Marketplaces**
 → select `anaidenko` → enable auto-update. Claude Code then refreshes shortly

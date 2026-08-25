@@ -102,6 +102,23 @@ reachable** — push alone leaves existing installs on the cached copy.
 That field is the only place a version lives — `package.json` deliberately has
 none, so the two cannot drift.
 
+### The marketplace
+
+The plugin is served from [anaidenko/claude-plugins](https://github.com/anaidenko/claude-plugins),
+which references this repo by URL. **A release does not touch it:** versions are
+read from `plugin.json` at install time, and the manifest deliberately carries no
+`version` field to keep in sync.
+
+It does need an edit when this repo is renamed or moved (its `url` there points
+at the old location) or when the one-line description users see in the plugin
+browser changes — that copy lives in the manifest, not here.
+
+Note that this repo has no `marketplace.json` of its own, deliberately.
+Marketplaces are keyed by the `name` inside that file rather than by repo URL,
+so a second repo declaring the same name silently takes the slot; the loser's
+plugin stays `enabled` while failing to load, with its hooks quietly dead. That
+happened here — hence the shared marketplace.
+
 ## Style
 
 Match the surrounding code: 4-space indent in shell, `set -uo pipefail`,

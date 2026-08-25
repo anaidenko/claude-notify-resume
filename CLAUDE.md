@@ -82,6 +82,15 @@ do not "improve" error handling by surfacing errors to the user.
   which flags `A && B || C` (SC2015) where 0.11.0 stays quiet — a lint that was
   clean locally failed on the first CI run. The workflow fetches 0.11.0 directly
   and then runs `npm run lint`, so CI and a developer run the same check.
+- **Marketplaces are keyed by the `name` inside `marketplace.json`,** not by
+  repo URL. This repo and `claude-video-digest` both declared `"name":
+  "anaidenko"`, so adding the second one silently took the slot — the first
+  stayed `enabled: true` in settings while `claude plugin list` reported
+  `failed to load`, and its hooks died with no error anywhere. It read as "the
+  plugin broke", and cost a full debugging session. Both now live in
+  `anaidenko/claude-plugins`, and neither repo carries a `marketplace.json`.
+  Note `claude plugin marketplace update` does *not* re-read a changed `name`;
+  that needs `remove` + `add`.
 - **`git push --tags` pushes only tags, not the branch.** It left v1.1.2–v1.1.5
   on GitHub pointing at commits that had never been pushed, while `main` still
   showed 1.1.1 — so the marketplace kept serving the old version. Use
