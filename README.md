@@ -56,7 +56,7 @@ Terminal sessions get all of them.
 ## Install
 
 ```bash
-claude plugin marketplace add anaidenko/claude-notify-resume
+claude plugin marketplace add anaidenko/claude-plugins
 claude plugin install claude-notify-resume@anaidenko
 ```
 
