@@ -195,6 +195,46 @@ else
 fi
 rm -rf "$QUOTE_PARENT"
 
+printf '\nDetached delivery\n'
+
+# The 1.2.1 hang: terminal-notifier (and any notifier) inherits the hook's
+# stdout and stderr, and the harness waits for those pipes to close — not for
+# the hook to exit. A notifier that blocks therefore stalled every turn for the
+# whole hook timeout, even though notify.sh itself had already finished.
+# So assert on the PIPES closing, not on the exit status: an earlier version of
+# this check timed the script's exit and passed while the pipes stayed open.
+HANG_DIR="$(mktemp -d)"
+mkdir -p "$HANG_DIR/scripts"
+cp "$REPO_ROOT/scripts/notify.sh" "$REPO_ROOT/scripts/load-config.sh" \
+    "$REPO_ROOT/scripts/notify-parse.js" "$HANG_DIR/scripts/"
+# A notifier that never returns, standing in for a wedged usernoted or a
+# pending TCC prompt.
+printf '#!/usr/bin/env bash\nsleep 60\n' >"$HANG_DIR/scripts/notify-macos.sh"
+chmod +x "$HANG_DIR/scripts/notify-macos.sh"
+
+# Read the hook's stdout to EOF exactly as the harness does. `cat` returns only
+# once every writer has let go of the pipe, so this hangs for the full 60s if a
+# descendant keeps holding it.
+HANG_START=$SECONDS
+( payload | "$HANG_DIR/scripts/notify.sh" "Replied" | cat >/dev/null 2>&1 ) &
+HANG_PID=$!
+( sleep 15; kill -9 $HANG_PID 2>/dev/null ) >/dev/null 2>&1 &
+HANG_GUARD=$!
+wait $HANG_PID 2>/dev/null
+HANG_ELAPSED=$((SECONDS - HANG_START))
+kill $HANG_GUARD 2>/dev/null
+wait $HANG_GUARD 2>/dev/null
+pkill -f "$HANG_DIR/scripts/notify-macos.sh" >/dev/null 2>&1
+rm -rf "$HANG_DIR"
+
+if [ "$HANG_ELAPSED" -lt 10 ]; then
+    printf '  ok    a blocked notifier does not hold the hook'"'"'s pipes open\n'
+    PASS=$((PASS + 1))
+else
+    printf '  FAIL  a blocked notifier held the hook'"'"'s pipes for %ss\n' "$HANG_ELAPSED"
+    FAIL=$((FAIL + 1))
+fi
+
 printf '\nMuting\n'
 
 # CLAUDE_NOTIFY_MUTE drops the listed statuses. The list is hand-written, so

@@ -6,7 +6,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Permission needed\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Permission needed\"",
+                        "timeout": 10
                     }
                 ]
             },
@@ -15,7 +16,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Waiting for you\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Waiting for you\"",
+                        "timeout": 10
                     }
                 ]
             },
@@ -24,7 +26,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Input needed\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Input needed\"",
+                        "timeout": 10
                     }
                 ]
             },
@@ -33,7 +36,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent needs you\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent needs you\"",
+                        "timeout": 10
                     }
                 ]
             },
@@ -42,7 +46,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent finished\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Background agent finished\"",
+                        "timeout": 10
                     }
                 ]
             }
@@ -52,7 +57,8 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Replied\""
+                        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\" \"Replied\"",
+                        "timeout": 10
                     }
                 ]
             }

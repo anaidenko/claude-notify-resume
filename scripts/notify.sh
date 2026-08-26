@@ -86,9 +86,28 @@ fi
 [ -n "$CHAT" ] || CHAT="Claude Code"
 [ "${#CHAT}" -gt 60 ] && CHAT="${CHAT:0:59}…"
 
-case "$(uname -s)" in
-    Darwin) "$PLUGIN_ROOT/scripts/notify-macos.sh" "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" ;;
-    Linux) "$PLUGIN_ROOT/scripts/notify-linux.sh" "$STATUS" "$CHAT" ;;
-esac
+# Deliver from a fully detached background child, stdio closed.
+#
+# The harness waits for the hook's stdout/stderr to reach EOF, not for the hook
+# to exit — and every descendant inherits those descriptors. So a notifier that
+# blocks holds the turn open even once notify.sh has returned: the 2026-08-26
+# hang, ~60s of spinner on every turn, traced to a `terminal-notifier -sender`
+# parked forever in an AppKit event loop. Closing stdio here cuts the
+# inheritance, so the turn ends whatever the notifier decides to do.
+#
+# CLAUDE_NOTIFY_BIN (the test-stub marker) keeps delivery synchronous, so the
+# suites can assert on stub captures right after notify.sh returns.
+deliver() {
+    case "$(uname -s)" in
+        Darwin) "$PLUGIN_ROOT/scripts/notify-macos.sh" "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" ;;
+        Linux) "$PLUGIN_ROOT/scripts/notify-linux.sh" "$STATUS" "$CHAT" ;;
+    esac
+}
+
+if [ -n "${CLAUDE_NOTIFY_BIN:-}" ]; then
+    deliver
+else
+    deliver </dev/null >/dev/null 2>&1 &
+fi
 
 exit 0
