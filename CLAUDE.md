@@ -130,6 +130,24 @@ do not "improve" error handling by surfacing errors to the user.
   `pgrep -x`, which asks the kernel and launches nothing. Note the process is
   `iTerm2` even though the app is `iTerm`; matching the app name finds nothing
   and makes every start look cold.
+- **A hook is finished when its *pipes* close, not when it exits.** Claude Code
+  reads the hook's stdout/stderr to EOF, and every descendant inherits those
+  descriptors — so one blocking grandchild stalls the turn even though
+  `notify.sh` returned long ago. That was the 2026-08-26 hang: ~60s of spinner
+  on *every* turn, bisected to this plugin alone. The blocked process was
+  `terminal-notifier` invoked with `-sender com.claude-code.notify` (the pre-1.2
+  icon scheme), caught live in `ps` at 60s+ and still climbing; `sample` showed
+  it parked in `-[NSApplication run]` — an AppKit event loop it never leaves,
+  because `-sender` makes it wait on a Launch Services round-trip to a bundle
+  whose registration had gone stale. Killing that grandchild collapsed the whole
+  chain instantly, which is the proof the wait was one-directional. Note the
+  suspicion at the time was the *new* native `claude-notify post` path; it was
+  innocent — the culprit was the old cache version still on disk. Delivery now
+  runs detached with stdio closed (`</dev/null >/dev/null 2>&1 &`), which fixes
+  the whole class regardless of which notifier blocks. Test it by asserting the
+  pipes close (`… | cat`), never by timing the script's exit — the script exited
+  fast in the bug too.
+
 - **The VS Code extension never emits the `Notification` hook event.** `Stop`
   fires there, so `Replied` banners arrive and the plugin looks healthy — but
   `Permission needed`, `Waiting for you` and every other Notification-based
