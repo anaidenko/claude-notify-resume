@@ -4,6 +4,34 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.3.0
+
+### Changed
+
+- Notifications are delivered from a detached background process, so the hook
+  returns as soon as it has parsed the payload. Delivery no longer happens
+  before the hook exits — in exchange, nothing the notifier does can hold up
+  your session.
+
+### Fixed
+
+- The hook no longer stalls the turn. Every turn hung for about a minute — the
+  spinner never settling, `running stop hooks 0/2` in the CLI — until the hook
+  timeout cut it loose.
+
+    Claude Code considers a hook finished when its stdout and stderr reach EOF,
+    not when the hook exits, and every process the hook starts inherits those
+    pipes. So a notifier that blocks keeps the turn open long after
+    `notify.sh` itself is done. The blocking process was `terminal-notifier`
+    launched with `-sender`, parked indefinitely in an AppKit event loop waiting
+    on a Launch Services round-trip to a bundle registration that had gone
+    stale.
+
+    Detaching delivery closes those pipes immediately, which retires the whole
+    class: whichever notifier blocks, and for whatever reason, the turn ends.
+    The hooks also carry an explicit 10s timeout now, as a second line of
+    defence rather than the fix.
+
 ## 1.2.1
 
 ### Fixed
