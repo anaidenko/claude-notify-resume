@@ -4,6 +4,27 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.3.1
+
+### Fixed
+
+- Banners no longer stop for good when macOS forgets the icon bundle. After a
+  macOS update the bundle can drop out of Launch Services, because it lives in a
+  hidden directory that nothing rescans. From then on macOS refused every
+  notification it posted, and nothing pointed at the cause: the hook ran, the
+  plugin showed as enabled, and the notifier still reported success.
+
+    The notifier now reports a refused post in its exit status, and the hook
+    responds by re-registering the bundle and posting again. If macOS still
+    refuses, the banner goes out through `terminal-notifier` instead. It lacks
+    the Claude icon but is still delivered and clickable. If you switched
+    notifications off for Claude Code in System Settings, they stay off: that
+    is a choice, and the plugin does not route around it.
+
+    Re-run `setup-macos-icon.sh` once to build the new notifier. Until you do,
+    the hook renews the registration before every banner. That covers the same
+    failure, but without the `terminal-notifier` fallback.
+
 ## 1.3.0
 
 ### Changed
