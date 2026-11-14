@@ -65,12 +65,47 @@ fi
 # Which app to drive. The detected host (CLAUDE_NOTIFY_HOST, resolved from the
 # process tree at notify time — TERM_PROGRAM is empty in the hook environment)
 # picks iTerm over Terminal so the session lands in the terminal you use.
-#
-# An editor host resolves to a terminal: VS Code has no scriptable terminal, so
-# the most it could do is open the folder and leave you to paste the command —
-# which is not resuming the conversation, the one thing this exists to do.
 HOST="${CLAUDE_NOTIFY_HOST:-}"
-[ "$HOST" = "vscode" ] && HOST="Terminal"
+
+# A session from the VS Code extension reopens as its own tab in its own window,
+# through the extension's URL handler. It never runs a second process in a
+# terminal. The host is vscode:<window>:<extension host pid>, because VS Code
+# sends the URL to its last active window unless windowId names one. In another
+# project's window the extension opens a new, empty session instead. Focusing
+# the right window first does not fix that: it raced, and lost one time in
+# three.
+vscode_tab() {
+    local rest window exthost
+    rest="${HOST#vscode:}"
+    window="${rest%%:*}"
+    exthost="${rest#*:}"
+    case "$window" in '' | *[!0-9]*) return 1 ;; esac
+    case "$exthost" in '' | *[!0-9]*) return 1 ;; esac
+    # The extension silently ignores an id containing `/`, `\` or `..`. Such a
+    # click would do nothing at all, so it goes to a terminal instead.
+    case "$SESSION_ID" in *[!A-Za-z0-9-]*) return 1 ;; esac
+    # Is it still the same window? Its extension host must be alive. A dead one
+    # means the window closed or VS Code restarted, and the ids may now name
+    # other windows.
+    case "$(ps -o comm= -p "$exthost" 2>/dev/null)" in
+        *"Code Helper"*) ;;
+        *) return 1 ;;
+    esac
+    open "vscode://anthropic.claude-code/open?session=$SESSION_ID&windowId=$window" >/dev/null 2>&1
+}
+
+# TERMINAL forces a terminal, as documented, even over a detected editor.
+if [ -z "${CLAUDE_NOTIFY_TERMINAL:-}" ]; then
+    case "$HOST" in
+        vscode:*:*) vscode_tab && exit 0 ;;
+    esac
+fi
+
+# Everything else that is editor-hosted resumes in a terminal: a CLI in VS
+# Code's integrated terminal (no window id, and no tab to return to), Insiders
+# (untested), or a window that is gone. Opening the folder alone would not
+# resume the conversation.
+case "$HOST" in vscode*) HOST="Terminal" ;; esac
 TERMINAL_APP="${CLAUDE_NOTIFY_TERMINAL:-${HOST:-Terminal}}"
 
 if [ "$TERMINAL_APP" = "iTerm" ] || [ "$TERMINAL_APP" = "iTerm2" ]; then

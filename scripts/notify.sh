@@ -102,12 +102,31 @@ if [ "$(uname -s)" = "Darwin" ]; then
         fi
         probe_cmd="$(ps -o comm= -p "$probe_pid" 2>/dev/null)"
         case "$probe_cmd" in
+            # Insiders is checked first: its path also contains "Visual Studio
+            # Code", and a vscode:// click would open the stable app instead.
+            *"Visual Studio Code - Insiders"*) HOST="vscode-insiders"; break ;;
             *"Visual Studio Code"* | *"Code Helper"*) HOST="vscode"; break ;;
             *iTerm*) HOST="iTerm"; break ;;
             *Terminal.app*) HOST="Terminal"; break ;;
         esac
         probe_pid="$(ps -o ppid= -p "$probe_pid" 2>/dev/null | tr -d ' ')"
     done
+
+    # Under the VS Code extension, the click reopens the session's own tab, so
+    # it needs the window. VS Code sends a vscode:// URL to its last active
+    # window unless the URL names one. In another project's window, the
+    # extension starts a new, empty session instead. The window id is visible
+    # only in the extension host's open files: each one keeps its window's log
+    # directory, logs/<session>/window<N>/exthost/, open. Its pid goes along so
+    # the click can check that the window is still the same one. A pty host
+    # (integrated terminal) owns no window and stays a bare "vscode".
+    if [ "$HOST" = "vscode" ]; then
+        # /usr/sbin is not always on a hook's PATH.
+        LSOF="$(command -v lsof 2>/dev/null || printf '%s' /usr/sbin/lsof)"
+        window_id="$("$LSOF" -p "$probe_pid" -Fn 2>/dev/null |
+            sed -n 's|^n.*/logs/[^/]*/window\([0-9][0-9]*\)/exthost/.*|\1|p' | head -1)"
+        [ -n "$window_id" ] && HOST="vscode:$window_id:$probe_pid"
+    fi
 fi
 
 # Deliver from a fully detached background child, stdio closed.

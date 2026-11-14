@@ -7,9 +7,9 @@ STATUS="$1"
 CHAT="$2"
 SESSION_ID="${3:--}"
 CWD="${4:--}"
-# The app Claude Code runs under (vscode, iTerm, Terminal, or empty). It comes
-# from notify.sh because this script runs detached: from here the process tree
-# ends at launchd, so a walk would find nothing.
+# The app Claude Code runs under: iTerm, Terminal, vscode[:<window>:<pid>],
+# vscode-insiders, or empty. It comes from notify.sh because this script runs
+# detached: from here the process tree ends at launchd, so a walk finds nothing.
 HOST="${5:-}"
 
 # Honour the test-stub directory here too: this script is also called directly,
@@ -71,9 +71,12 @@ MARKER="$APP/Contents/Resources/native-notifier"
 if [ -f "$MARKER" ] && [ -x "$NOTIFIER_BIN" ] &&
     [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
+    # The host goes last, after the group: the click runs inside the bundle long
+    # after this hook is gone, so it travels in the notification. A pre-1.3.3
+    # binary ignores the extra argument and its clicks fall back to a terminal.
     post() {
         "$NOTIFIER_BIN" post "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" "$OPENER" \
-            "claude-$SESSION_ID" >/dev/null 2>&1
+            "claude-$SESSION_ID" "$HOST" >/dev/null 2>&1
     }
 
     # Launch Services can forget the bundle — it lives in a hidden directory

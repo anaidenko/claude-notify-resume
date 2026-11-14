@@ -9,8 +9,9 @@
 //
 // Two roles, picked by argv:
 //
-//   claude-notify post <title> <body> <session-id> <cwd> <opener> <group>
-//       Post one notification carrying everything its click will need.
+//   claude-notify post <title> <body> <session-id> <cwd> <opener> <group> [host]
+//       Post one notification carrying everything its click will need. The
+//       host (CLAUDE_NOTIFY_HOST, see notify.sh) decides where it reopens.
 //
 //   claude-notify
 //       No arguments: macOS launched us because a notification was clicked.
@@ -78,6 +79,14 @@ final class ClickHandler: NSObject, NSApplicationDelegate, UNUserNotificationCen
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/bin/bash")
             proc.arguments = [script, session, cwd]
+            // Without the host the opener can only guess at a terminal, and a
+            // VS Code session would get a second process there instead of its
+            // own tab back.
+            if let host = info["host"] as? String, !host.isEmpty {
+                var environment = ProcessInfo.processInfo.environment
+                environment["CLAUDE_NOTIFY_HOST"] = host
+                proc.environment = environment
+            }
             try? proc.run()
             proc.waitUntilExit()
         }
@@ -125,7 +134,8 @@ if arguments.count >= 3 && arguments[1] == "post" {
     if arguments.count > 6 {
         content.userInfo = ["session": arguments[4],
                             "cwd": arguments[5],
-                            "opener": arguments[6]]
+                            "opener": arguments[6],
+                            "host": arguments.count > 8 ? arguments[8] : ""]
     }
 
     // Reusing the identifier replaces the banner already on screen from the

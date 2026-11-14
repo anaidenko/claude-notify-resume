@@ -210,7 +210,7 @@ NATIVE_QUEUE="$STUB_BIN/native-queue"
 mkdir -p "$NATIVE_APP/Contents/MacOS" "$NATIVE_APP/Contents/Resources"
 cat >"$NATIVE_APP/Contents/MacOS/claude-notify" <<STUB
 #!/bin/bash
-printf 'claude-notify %s\n' "\$1" >>"$STUB_LOG"
+printf 'claude-notify %s\n' "\$*" >>"$STUB_LOG"
 rc="\$(head -1 "$NATIVE_QUEUE")"
 tail -n +2 "$NATIVE_QUEUE" >"$NATIVE_QUEUE.next"
 mv "$NATIVE_QUEUE.next" "$NATIVE_QUEUE"
@@ -252,6 +252,16 @@ check "pre-1.3.1 binary: re-register before every post" \
     "lsregister,claude-notify" "$(native_probe '' 0)"
 native_probe 2 3 3 >/dev/null
 check "exit 0 when the native path fails" "0" "$NATIVE_RC"
+
+# The click on a native banner runs inside the bundle, long after the hook, so
+# the host has to travel inside the notification. It is the last argument, after
+# the group, so a pre-1.3.3 binary simply ignores it.
+printf '2' >"$NATIVE_APP/Contents/Resources/native-notifier"
+printf '0\n' >"$NATIVE_QUEUE"
+: >"$STUB_LOG"
+env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$NATIVE_STATE" \
+    "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" "vscode:7:123" >/dev/null 2>&1
+contains "a native banner carries the host to its click" "claude-s1 vscode:7:123" "$(cat "$STUB_LOG")"
 
 printf '\nDetached delivery\n'
 
@@ -303,7 +313,7 @@ printf '\nHost detection\n'
 # CLAUDE_NOTIFY_BIN: that switches delivery to synchronous and hides the bug),
 # under a parent posing as iTerm, and record the host it hands to delivery.
 HOST_DIR="$(mktemp -d)"
-mkdir -p "$HOST_DIR/scripts" "$HOST_DIR/iTerm.app/Contents/MacOS"
+mkdir -p "$HOST_DIR/scripts"
 cp "$REPO_ROOT/scripts/notify.sh" "$REPO_ROOT/scripts/load-config.sh" \
     "$REPO_ROOT/scripts/notify-parse.js" "$HOST_DIR/scripts/"
 cat >"$HOST_DIR/scripts/notify-macos.sh" <<STUB
@@ -311,20 +321,60 @@ cat >"$HOST_DIR/scripts/notify-macos.sh" <<STUB
 printf '%s' "\${5-<no host argument>}" >"$HOST_DIR/host.txt"
 STUB
 chmod +x "$HOST_DIR/scripts/notify-macos.sh"
-# `ps` reports a symlink by its own path, so this bash shows up as iTerm. A copy
-# of the binary would not do: macOS kills a relocated system binary on launch.
-ln -s /bin/bash "$HOST_DIR/iTerm.app/Contents/MacOS/iTerm2"
 payload >"$HOST_DIR/payload.json"
-# The trailing `true` stops bash from exec-ing notify.sh in its own place,
-# which would take the fake parent out of the tree.
-# shellcheck disable=SC2016  # must expand in the inner bash, not here
-"$HOST_DIR/iTerm.app/Contents/MacOS/iTerm2" -c \
-    '"$1/scripts/notify.sh" "Replied" <"$1/payload.json"; true' _ "$HOST_DIR" >/dev/null 2>&1
-for _ in $(seq 50); do
-    [ -f "$HOST_DIR/host.txt" ] && break
-    sleep 0.1
-done
-check "host is resolved before delivery detaches" "iTerm" "$(cat "$HOST_DIR/host.txt" 2>/dev/null)"
+
+# host_probe <fake app executable> [log file to hold open], both relative to
+# HOST_DIR. Prints the host handed to delivery, with the fake parent's own pid
+# written as PID.
+#
+# `ps` reports a symlink by its own path, so a symlinked bash shows up as the
+# app. A copy of the binary would not do: macOS kills a relocated system binary
+# on launch. The trailing `true` stops bash from exec-ing notify.sh in its own
+# place, which would take the fake parent out of the tree.
+host_probe() {
+    local exe="$HOST_DIR/$1" log="${2:+$HOST_DIR/$2}"
+    mkdir -p "$(dirname "$exe")"
+    [ -L "$exe" ] || ln -s /bin/bash "$exe"
+    [ -z "$log" ] || mkdir -p "$(dirname "$log")"
+    rm -f "$HOST_DIR/host.txt" "$HOST_DIR/parent.pid"
+    # shellcheck disable=SC2016  # must expand in the inner bash, not here
+    "$exe" -c '
+        printf "%s" "$$" >"$1/parent.pid"
+        [ -z "$2" ] || exec 3>>"$2"
+        "$1/scripts/notify.sh" "Replied" <"$1/payload.json"
+        true' _ "$HOST_DIR" "$log" >/dev/null 2>&1
+    for _ in $(seq 50); do
+        [ -f "$HOST_DIR/host.txt" ] && break
+        sleep 0.1
+    done
+    local host parent
+    host="$(cat "$HOST_DIR/host.txt" 2>/dev/null)"
+    parent="$(cat "$HOST_DIR/parent.pid" 2>/dev/null)"
+    printf '%s' "${host//$parent/PID}"
+}
+
+check "host is resolved before delivery detaches" "iTerm" \
+    "$(host_probe "iTerm.app/Contents/MacOS/iTerm2")"
+
+# A VS Code session reopens as its own tab, which needs the window it lives in.
+# Each window's extension host keeps that window's log directory open
+# (logs/<session>/window<N>/exthost/), so the id is read from its open files.
+# The pid rides along so the click can tell the id still means that window.
+check "a VS Code extension host names its window" "vscode:7:PID" "$(host_probe \
+    "Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)" \
+    "Code/logs/20261114T204338/window7/exthost/exthost.log")"
+
+# A CLI in VS Code's integrated terminal sits under the pty host, which owns no
+# window. Without an id there is no tab to return to.
+check "VS Code without a window stays a bare vscode" "vscode" "$(host_probe \
+    "Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper")"
+
+# Insiders lives at "Visual Studio Code - Insiders.app", so a plain VS Code
+# match would claim it, and a vscode:// URL would then open the stable app. Its
+# own scheme is untested, so it is named and left to a terminal.
+check "VS Code Insiders is not taken for VS Code" "vscode-insiders" "$(host_probe \
+    "Visual Studio Code - Insiders.app/Contents/Frameworks/Code - Insiders Helper (Plugin).app/Contents/MacOS/Code - Insiders Helper (Plugin)" \
+    "Code - Insiders/logs/20261114T204338/window7/exthost/exthost.log")"
 rm -rf "$HOST_DIR"
 
 # ...and the host notify.sh resolved is the one the click receives.

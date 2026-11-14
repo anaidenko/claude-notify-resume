@@ -213,14 +213,22 @@ Every key also works as an environment variable prefixed `CLAUDE_NOTIFY_`
 
 ### Where the session reopens
 
-Clicking a banner reopens the session in your terminal — iTerm if that is what
-you use, otherwise Terminal — detected from the process tree when the
-notification is sent, and focusing the tab already running that session instead
-of stacking up a window per click.
+Clicking a banner reopens the session where it was running. The plugin detects
+that from the process tree when the notification is sent:
 
-A session hosted in VS Code resumes in a real terminal too. VS Code has no
-scriptable terminal, so the most a plugin could do there is open the folder and
-leave you to paste the command — which is not resuming the conversation.
+- **The VS Code extension:** the session's own tab, in the window it belongs
+  to, even when another VS Code window was active. If that window has closed
+  since, or VS Code has restarted, the session resumes in a terminal instead.
+- **iTerm or Terminal:** that terminal, focusing the tab already running the
+  session rather than opening a new window for each click.
+
+For banners with the Claude icon, the VS Code tab needs the notifier from 1.3.3
+or later. Re-run `setup-macos-icon.sh` once after updating; until then those
+clicks open a terminal.
+
+A CLI session in VS Code's integrated terminal resumes in a real terminal, as
+does VS Code Insiders. The integrated terminal has no tab to return to and
+cannot be driven by a script, and the Insiders path is untested.
 
 Two things worth knowing about a resumed session:
 
