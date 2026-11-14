@@ -61,8 +61,15 @@ do not "improve" error handling by surfacing errors to the user.
   new logic in that script rather than growing the string again.
 - **`TERM_PROGRAM` is empty in the hook environment,** so the host app cannot be
   detected at click time (by then the frontmost app is Notification Centre).
-  `notify-macos.sh` walks the process tree while the hook runs and passes
-  `CLAUDE_NOTIFY_HOST` through to the click.
+  `notify.sh` walks the process tree while the hook runs and passes
+  `CLAUDE_NOTIFY_HOST` through to the click. The walk must happen *before*
+  delivery detaches. Once `notify.sh` exits, the detached child is reparented
+  to launchd and its walk ends at once. 1.3.0 lost the host that way: the walk
+  still lived in `notify-macos.sh`, and every fallback click opened Terminal.
+  The suite catches this by running `notify.sh` detached under a symlinked
+  `/bin/bash` posing as iTerm, because `ps` reports a symlink by its own path.
+  A copied system binary will not work as the stand-in: macOS kills it on
+  launch.
 - **A bare `osascript` notification is owned by Script Editor** — clicking it
   opens Script Editor's file dialog. Send user-facing notifications through
   `terminal-notifier` when it is available (`notify()` in `open-session.sh`).
