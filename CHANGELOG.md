@@ -4,6 +4,26 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.3.2
+
+### Fixed
+
+- A click on a fallback banner opens your session in iTerm again if that is
+  where Claude Code runs. Since 1.3.0 every such click opened Terminal,
+  whatever terminal you used.
+
+    The plugin works out the app it runs under from the hook's parent
+    processes. 1.3.0 moved delivery into a detached background process, and
+    the lookup moved with it. By the time it ran, the hook had exited, and
+    the background process had no parents left to inspect. The lookup now
+    happens in the hook itself, before delivery detaches, which adds about
+    20 ms.
+
+    This affects banners sent through `terminal-notifier`. A banner from the
+    Claude icon bundle has never carried the host app, and its click opens
+    Terminal unless `TERMINAL=iTerm` is set in
+    `~/.claude/claude-notify-resume.conf`.
+
 ## 1.3.1
 
 ### Fixed
