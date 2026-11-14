@@ -70,6 +70,17 @@ do not "improve" error handling by surfacing errors to the user.
   `/bin/bash` posing as iTerm, because `ps` reports a symlink by its own path.
   A copied system binary will not work as the stand-in: macOS kills it on
   launch.
+- **VS Code sends a `vscode://` URL to its *last active* window,** not to the
+  window that owns the session. The extension's `open?session=<id>` handler
+  then opens the session in that window's project, which means a new, empty
+  session in the wrong folder. Focusing the right window first (`open -b
+  com.microsoft.VSCode <folder>`) and then sending the URL raced, and lost one
+  run in three. `&windowId=<N>` routes deterministically. N is the window's
+  log directory number, read at notify time from the extension host's open
+  files (`logs/<session>/window<N>/exthost/`). The host's pid travels with it,
+  so the click can check that the window still exists. Read the routing from
+  each window's `Claude VSCode.log` (`webview_focused`, `engine_ui_attach`):
+  with no screen or accessibility access, those logs were the only signal.
 - **A bare `osascript` notification is owned by Script Editor** — clicking it
   opens Script Editor's file dialog. Send user-facing notifications through
   `terminal-notifier` when it is available (`notify()` in `open-session.sh`).
