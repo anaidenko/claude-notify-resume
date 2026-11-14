@@ -63,12 +63,49 @@ fi
 # one, which does not understand `post` — that one falls through to -execute
 # and keeps working, just without the icon, until setup is re-run.
 NOTIFIER_BIN="$APP/Contents/MacOS/claude-notify"
-if [ -f "$APP/Contents/Resources/native-notifier" ] && [ -x "$NOTIFIER_BIN" ] &&
+MARKER="$APP/Contents/Resources/native-notifier"
+if [ -f "$MARKER" ] && [ -x "$NOTIFIER_BIN" ] &&
     [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
-    "$NOTIFIER_BIN" post "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" "$OPENER" \
-        "claude-$SESSION_ID" >/dev/null 2>&1 || true
-    exit 0
+    post() {
+        "$NOTIFIER_BIN" post "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" "$OPENER" \
+            "claude-$SESSION_ID" >/dev/null 2>&1
+    }
+
+    # Launch Services can forget the bundle — it lives in a hidden directory
+    # nothing rescans, and a macOS update is the likely trigger — and usernoted
+    # then refuses every post ("Failed to find or validate client"), visible
+    # only in the system log.
+    # Re-registering is what setup did in the first place, and costs ~30ms.
+    # Looked up on PATH first only so the test suite can stub it.
+    LSREGISTER="$(command -v lsregister 2>/dev/null)"
+    [ -n "$LSREGISTER" ] ||
+        LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+    reregister() { "$LSREGISTER" -f "$APP" >/dev/null 2>&1; }
+
+    # An empty marker means a binary built before 1.3.1, which exits 0 whatever
+    # macOS answered — a refused post is indistinguishable from a delivered one.
+    # Renew the registration up front instead, until setup is re-run.
+    if [ ! -s "$MARKER" ]; then
+        reregister
+        post
+        exit 0
+    fi
+
+    # The exit status is the binary's verdict: 0 posted, 3 macOS refused us as a
+    # client, 4 the user switched "Claude Code" off in System Settings.
+    post
+    rc=$?
+    if [ "$rc" -eq 3 ]; then
+        reregister
+        post
+        rc=$?
+    fi
+    # 4 is a choice rather than a fault: a banner from another sender would
+    # override it, so nothing routes around it.
+    case "$rc" in 0 | 4) exit 0 ;; esac
+    # Still refused, or the binary crashed: fall through to terminal-notifier,
+    # so a broken bundle costs the icon rather than the banner.
 fi
 
 if [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then

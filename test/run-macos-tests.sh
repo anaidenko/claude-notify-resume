@@ -17,7 +17,9 @@ FAIL=0
 # Stub directory, prepended to PATH for every dispatch check below.
 STUB_BIN="$(mktemp -d)"
 STUB_LOG="$STUB_BIN/calls.log"
-for tool in terminal-notifier osascript; do
+# lsregister too: the native path re-registers the icon bundle on a refused post,
+# and the real tool would write a test bundle into the user's Launch Services.
+for tool in terminal-notifier osascript lsregister; do
     cat >"$STUB_BIN/$tool" <<STUB
 #!/bin/bash
 printf '%s' "$tool" >>"$STUB_LOG"
@@ -194,6 +196,62 @@ else
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$QUOTE_PARENT"
+
+printf '\nNative notifier\n'
+
+# The compiled bundle is the main path, and the one that went silent: after a
+# macOS update Launch Services no longer knew the bundle, usernoted refused every
+# post, and the binary exited 0 all the same. A fake bundle stands in for it
+# here; its exit statuses come from a queue, one per call, so each case scripts
+# what macOS answers: 0 posted, 3 client refused, 4 switched off by the user.
+NATIVE_STATE="$STUB_BIN/native-state"
+NATIVE_APP="$NATIVE_STATE/Claude Code.app"
+NATIVE_QUEUE="$STUB_BIN/native-queue"
+mkdir -p "$NATIVE_APP/Contents/MacOS" "$NATIVE_APP/Contents/Resources"
+cat >"$NATIVE_APP/Contents/MacOS/claude-notify" <<STUB
+#!/bin/bash
+printf 'claude-notify %s\n' "\$1" >>"$STUB_LOG"
+rc="\$(head -1 "$NATIVE_QUEUE")"
+tail -n +2 "$NATIVE_QUEUE" >"$NATIVE_QUEUE.next"
+mv "$NATIVE_QUEUE.next" "$NATIVE_QUEUE"
+exit "\${rc:-0}"
+STUB
+chmod +x "$NATIVE_APP/Contents/MacOS/claude-notify"
+
+# native_probe <marker content> <exit status>... — prints the call sequence,
+# one tool name per call, e.g. "claude-notify,lsregister,claude-notify".
+native_probe() {
+    local marker="$1"
+    shift
+    printf '%s' "$marker" >"$NATIVE_APP/Contents/Resources/native-notifier"
+    printf '%s\n' "$@" >"$NATIVE_QUEUE"
+    : >"$STUB_LOG"
+    env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$NATIVE_STATE" \
+        "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" >/dev/null 2>&1
+    NATIVE_RC=$?
+    awk '{ print $1 }' "$STUB_LOG" | paste -sd, -
+}
+
+check "accepted post: one native call, nothing else" \
+    "claude-notify" "$(native_probe 2 0)"
+check "refused client: re-register the bundle, then retry" \
+    "claude-notify,lsregister,claude-notify" "$(native_probe 2 3 0)"
+contains "re-registers the bundle itself" "lsregister -f $NATIVE_APP" "$(cat "$STUB_LOG")"
+check "still refused: fall back to terminal-notifier" \
+    "claude-notify,lsregister,claude-notify,terminal-notifier" "$(native_probe 2 3 3)"
+contains "the fallback banner stays clickable" "-execute" "$(cat "$STUB_LOG")"
+# Not a fault to route around: a banner from another sender would override a
+# choice the user made in System Settings.
+check "switched off by the user: no other sender" \
+    "claude-notify" "$(native_probe 2 4)"
+check "crashed notifier: fall back, no re-register" \
+    "claude-notify,terminal-notifier" "$(native_probe 2 139)"
+# A binary built before the exit statuses existed reports 0 whatever happened,
+# so the refusal cannot be seen — the registration is renewed up front instead.
+check "pre-1.3.1 binary: re-register before every post" \
+    "lsregister,claude-notify" "$(native_probe '' 0)"
+native_probe 2 3 3 >/dev/null
+check "exit 0 when the native path fails" "0" "$NATIVE_RC"
 
 printf '\nDetached delivery\n'
 

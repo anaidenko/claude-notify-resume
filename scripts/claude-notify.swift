@@ -86,13 +86,37 @@ final class ClickHandler: NSObject, NSApplicationDelegate, UNUserNotificationCen
     }
 }
 
+// The outcome of a post, written by the callbacks and read once they signal.
+final class PostOutcome: @unchecked Sendable {
+    var granted = false
+    var failed = false
+}
+
 if arguments.count >= 3 && arguments[1] == "post" {
     // post <title> <body> [session cwd opener [group]]
+    //
+    // The exit status is the contract with notify-macos.sh, which picks the
+    // recovery from it:
+    //   0  posted
+    //   3  macOS refused this app as a client — re-register, else fall back
+    //   4  the user switched notifications off — respect it, send nothing else
+    // This used to exit 0 unconditionally, so when Launch Services lost the
+    // bundle every banner vanished behind a success status.
     let center = UNUserNotificationCenter.current()
+    let outcome = PostOutcome()
 
+    // An error here is not a refusal: usernoted could not resolve this bundle at
+    // all ("Failed to find or validate client"). A user's "off" is granted=false
+    // with no error.
     let authorized = DispatchSemaphore(value: 0)
-    center.requestAuthorization(options: [.alert, .sound]) { _, _ in authorized.signal() }
+    center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+        outcome.granted = granted
+        outcome.failed = error != nil
+        authorized.signal()
+    }
     authorized.wait()
+    if outcome.failed { exit(3) }
+    if !outcome.granted { exit(4) }
 
     let content = UNMutableNotificationContent()
     content.title = arguments[2]
@@ -111,9 +135,12 @@ if arguments.count >= 3 && arguments[1] == "post" {
                                         content: content,
                                         trigger: nil)
     let posted = DispatchSemaphore(value: 0)
-    center.add(request) { _ in posted.signal() }
+    center.add(request) { error in
+        outcome.failed = error != nil
+        posted.signal()
+    }
     posted.wait()
-    exit(0)
+    exit(outcome.failed ? 3 : 0)
 }
 
 // No arguments: launched by macOS to deliver a click.

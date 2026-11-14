@@ -96,8 +96,10 @@ fi
 touch "$APP"
 
 # Marks this as the compiled bundle; notify-macos.sh refuses to `post` through
-# the older script-only one, which would misread the argument.
-touch "$APP/Contents/Resources/native-notifier"
+# the older script-only one, which would misread the argument. The content says
+# the binary reports a refused post in its exit status: an empty marker is a
+# pre-1.3.1 build that exits 0 regardless, so the caller cannot trust it.
+printf '2\n' >"$APP/Contents/Resources/native-notifier"
 
 # An unsigned bundle is refused when macOS tries to launch it from a notification
 # click — silently, with no error anywhere. An ad-hoc signature (`-s -`) is enough;
