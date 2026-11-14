@@ -293,6 +293,44 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+printf '\nHost detection\n'
+
+# The click must land in the app Claude Code runs under, and that is only
+# knowable from the hook's ancestors (TERM_PROGRAM is empty in the hook). 1.3.0
+# moved delivery into a detached child, which is reparented to launchd once
+# notify.sh exits — a walk from there found no ancestors, so every fallback
+# click opened Terminal. Run notify.sh detached, exactly as in production (no
+# CLAUDE_NOTIFY_BIN: that switches delivery to synchronous and hides the bug),
+# under a parent posing as iTerm, and record the host it hands to delivery.
+HOST_DIR="$(mktemp -d)"
+mkdir -p "$HOST_DIR/scripts" "$HOST_DIR/iTerm.app/Contents/MacOS"
+cp "$REPO_ROOT/scripts/notify.sh" "$REPO_ROOT/scripts/load-config.sh" \
+    "$REPO_ROOT/scripts/notify-parse.js" "$HOST_DIR/scripts/"
+cat >"$HOST_DIR/scripts/notify-macos.sh" <<STUB
+#!/usr/bin/env bash
+printf '%s' "\${5-<no host argument>}" >"$HOST_DIR/host.txt"
+STUB
+chmod +x "$HOST_DIR/scripts/notify-macos.sh"
+# `ps` reports a symlink by its own path, so this bash shows up as iTerm. A copy
+# of the binary would not do: macOS kills a relocated system binary on launch.
+ln -s /bin/bash "$HOST_DIR/iTerm.app/Contents/MacOS/iTerm2"
+payload >"$HOST_DIR/payload.json"
+# The trailing `true` stops bash from exec-ing notify.sh in its own place,
+# which would take the fake parent out of the tree.
+# shellcheck disable=SC2016  # must expand in the inner bash, not here
+"$HOST_DIR/iTerm.app/Contents/MacOS/iTerm2" -c \
+    '"$1/scripts/notify.sh" "Replied" <"$1/payload.json"; true' _ "$HOST_DIR" >/dev/null 2>&1
+for _ in $(seq 50); do
+    [ -f "$HOST_DIR/host.txt" ] && break
+    sleep 0.1
+done
+check "host is resolved before delivery detaches" "iTerm" "$(cat "$HOST_DIR/host.txt" 2>/dev/null)"
+rm -rf "$HOST_DIR"
+
+# ...and the host notify.sh resolved is the one the click receives.
+SENT="$(capture "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" "iTerm")"
+contains "the click carries the host" "CLAUDE_NOTIFY_HOST=iTerm" "$SENT"
+
 printf '\nMuting\n'
 
 # CLAUDE_NOTIFY_MUTE drops the listed statuses. The list is hand-written, so

@@ -86,6 +86,30 @@ fi
 [ -n "$CHAT" ] || CHAT="Claude Code"
 [ "${#CHAT}" -gt 60 ] && CHAT="${CHAT:0:59}…"
 
+# Which app is Claude Code running under? The click needs it to resume in the
+# right terminal, and only the hook's ancestors can tell: TERM_PROGRAM is empty
+# in the hook environment, and by click time the tree is gone. Resolved here,
+# before delivery detaches. Once this script exits, the detached child is
+# reparented to launchd and has no ancestors left to walk. That is how 1.3.0
+# lost the host, so every fallback click opened Terminal. macOS only, since
+# Linux banners have no click.
+HOST=""
+if [ "$(uname -s)" = "Darwin" ]; then
+    probe_pid=$PPID
+    for _ in 1 2 3 4 5 6; do
+        if [ -z "$probe_pid" ] || [ "$probe_pid" = "1" ]; then
+            break
+        fi
+        probe_cmd="$(ps -o comm= -p "$probe_pid" 2>/dev/null)"
+        case "$probe_cmd" in
+            *"Visual Studio Code"* | *"Code Helper"*) HOST="vscode"; break ;;
+            *iTerm*) HOST="iTerm"; break ;;
+            *Terminal.app*) HOST="Terminal"; break ;;
+        esac
+        probe_pid="$(ps -o ppid= -p "$probe_pid" 2>/dev/null | tr -d ' ')"
+    done
+fi
+
 # Deliver from a fully detached background child, stdio closed.
 #
 # The harness waits for the hook's stdout/stderr to reach EOF, not for the hook
@@ -99,7 +123,7 @@ fi
 # suites can assert on stub captures right after notify.sh returns.
 deliver() {
     case "$(uname -s)" in
-        Darwin) "$PLUGIN_ROOT/scripts/notify-macos.sh" "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" ;;
+        Darwin) "$PLUGIN_ROOT/scripts/notify-macos.sh" "$STATUS" "$CHAT" "$SESSION_ID" "$CWD" "$HOST" ;;
         Linux) "$PLUGIN_ROOT/scripts/notify-linux.sh" "$STATUS" "$CHAT" ;;
     esac
 }

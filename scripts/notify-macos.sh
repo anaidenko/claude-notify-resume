@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # macOS banner via terminal-notifier. Called by notify.sh with the fields it
-# already parsed: <status> <chat> <session-id> <cwd>
+# already resolved: <status> <chat> <session-id> <cwd> [host]
 set -uo pipefail
 
 STATUS="$1"
 CHAT="$2"
 SESSION_ID="${3:--}"
 CWD="${4:--}"
+# The app Claude Code runs under (vscode, iTerm, Terminal, or empty). It comes
+# from notify.sh because this script runs detached: from here the process tree
+# ends at launchd, so a walk would find nothing.
+HOST="${5:-}"
 
 # Honour the test-stub directory here too: this script is also called directly,
 # without notify.sh having set up PATH.
@@ -115,24 +119,6 @@ if [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # express it inside a nested AppleScript literal.
     # Absolute: the click runs from an arbitrary working directory.
     OPENER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/open-session.sh"
-
-    # Which app is Claude Code running under? Only knowable now — by the time
-    # the banner is clicked the process tree is gone and the frontmost app is
-    # Notification Centre. Walk up from this hook to the first app we can drive.
-    HOST=""
-    probe_pid=$PPID
-    for _ in 1 2 3 4 5 6; do
-        if [ -z "$probe_pid" ] || [ "$probe_pid" = "1" ]; then
-            break
-        fi
-        probe_cmd="$(ps -o comm= -p "$probe_pid" 2>/dev/null)"
-        case "$probe_cmd" in
-            *"Visual Studio Code"*|*"Code Helper"*) HOST="vscode"; break ;;
-            *iTerm*) HOST="iTerm"; break ;;
-            *Terminal.app*) HOST="Terminal"; break ;;
-        esac
-        probe_pid="$(ps -o ppid= -p "$probe_pid" 2>/dev/null | tr -d ' ')"
-    done
 
     ARGS+=(-execute "$(printf 'CLAUDE_NOTIFY_HOST=%q %q %q %q' "$HOST" "$OPENER" "$SESSION_ID" "$CWD")")
 fi
