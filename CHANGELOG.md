@@ -4,6 +4,26 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.3.3
+
+### Changed
+
+- Clicking a banner from a VS Code session now reopens that session's own tab,
+  in the VS Code window it belongs to. Before, the click resumed the session in
+  Terminal, which left two copies of the same conversation running side by
+  side, each blind to the other's messages.
+
+    This works even when another VS Code window was active. VS Code hands a
+    link to its last active window by default, so the plugin records which
+    window the session lives in when the banner is sent. If that window has
+    closed since, or VS Code has restarted, the click resumes in a terminal
+    instead of guessing.
+
+    Banners with the Claude icon need the new notifier: re-run
+    `setup-macos-icon.sh` once. Until you do, their clicks open a terminal as
+    before. A CLI session in VS Code's integrated terminal, and VS Code
+    Insiders, still resume in a terminal.
+
 ## 1.3.2
 
 ### Fixed
