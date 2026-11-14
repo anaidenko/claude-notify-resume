@@ -158,7 +158,21 @@ do not "improve" error handling by surfacing errors to the user.
   `notify.sh "Replied"` while no `Notification` hookEvent existed in any
   transcript at all. The README states the limitation; keep it there until the
   upstream bug closes for real (the linked issues close as duplicates, not
-  fixes).
+  fixes). Newer Claude Code writes those commands as `command hook N`, so match
+  by hook count and order rather than by name.
+- **Launch Services can forget the icon bundle, and then every banner is
+  refused.** By November 2026 the bundle had dropped out of `lsregister -dump`
+  (most likely in the macOS 27.2 update; that part is unproven). It lives in a
+  hidden directory that nothing rescans. `usernoted` then refused each post with
+  `Failed to find or validate client of identifier com.claude-code.notify`,
+  while the binary still exited 0: the hook ran, the plugin showed `enabled`,
+  and no banner appeared. `post` now reports through its exit status (3 refused,
+  4 switched off by the user), and `notify-macos.sh` re-registers, retries, then
+  falls back to `terminal-notifier`. `lsregister -u` reproduces the failure on
+  demand. Two traps while diagnosing it: read the verdict with `/usr/bin/log`,
+  because in zsh `log` is a builtin that fails silently behind `2>/dev/null`; and
+  `notify.sh` missing from the transcripts proves nothing, because of the
+  `command hook N` masking above.
 
 ## Keeping this file honest
 
