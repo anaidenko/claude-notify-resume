@@ -1,14 +1,48 @@
 {
-    "name": "claude-notify-resume",
+    "name": "@anaidenko/claude-notify-resume",
     "description": "Desktop notifications for Claude Code that name the conversation they came from — and reopen it when clicked.",
-    "private": true,
-    "//": "No version field on purpose: .claude-plugin/plugin.json is the single source of truth, and a second copy here would drift.",
+    "//": "No version field on purpose: .claude-plugin/plugin.json is the single source of truth, and a second copy here would drift. publish.yml injects it at publish time; without it, a stray `npm publish` from a checkout fails.",
     "license": "MIT",
     "author": "Andrii Naidenko",
     "homepage": "https://github.com/anaidenko/claude-notify-resume",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/anaidenko/claude-notify-resume.git"
+    },
+    "bugs": "https://github.com/anaidenko/claude-notify-resume/issues",
+    "keywords": [
+        "claude-code",
+        "claude-code-plugin",
+        "claude-code-hooks",
+        "claude-code-notification",
+        "claude",
+        "notifications",
+        "desktop-notifications",
+        "click-to-resume",
+        "macos",
+        "linux"
+    ],
+    "bin": {
+        "claude-notify-resume": "bin/claude-notify-resume.js"
+    },
+    "files": [
+        ".claude-plugin/",
+        "hooks/",
+        "scripts/",
+        "bin/",
+        "assets/claude-logo.png",
+        "claude-notify-resume.conf.example",
+        "CHANGELOG.md"
+    ],
+    "os": [
+        "darwin",
+        "linux"
+    ],
+    "engines": {
+        "node": ">=18"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "scripts": {
         "test": "./test/run-tests.sh",
@@ -18,6 +52,8 @@
         "test:dbus": "docker build -q -t claude-notify-dbus -f test/Dockerfile.dbus . && docker run --rm claude-notify-dbus",
         "test:debian": "./test/run-linux-tests.sh debian:bookworm-slim",
         "test:ubuntu": "./test/run-linux-tests.sh ubuntu:24.04",
+        "test:install": "./test/install-suite.sh",
+        "test:package": "./test/package-suite.sh",
         "lint": "command -v shellcheck >/dev/null || { echo 'shellcheck not installed: brew install shellcheck'; exit 1; }; shellcheck scripts/*.sh test/*.sh",
         "notify:demo": "./test/demo-notification.sh",
         "test:click": "./test/open-session-suite.sh"

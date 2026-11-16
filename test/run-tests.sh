@@ -25,6 +25,10 @@ case "$(uname -s)" in
         printf '\n═══ Click handler (host)\n'
         ./test/open-session-suite.sh || exit 1
 
+        printf '\n'
+        ./test/install-suite.sh || exit 1
+        ./test/package-suite.sh || exit 1
+
         if [ "$ALL" -eq 1 ]; then
             printf '\n═══ Linux (Docker)\n'
             ./test/run-linux-tests.sh || exit 1
@@ -43,6 +47,10 @@ case "$(uname -s)" in
         # shellcheck disable=SC1091  # /etc/os-release exists at runtime, not here
         printf '═══ Linux (host: %s)\n' "$(. /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-unknown}")"
         ./test/linux-suite.sh || exit 1
+
+        printf '\n'
+        ./test/install-suite.sh || exit 1
+        ./test/package-suite.sh || exit 1
 
         if [ "$ALL" -eq 1 ] && command -v docker >/dev/null 2>&1; then
             printf '\n═══ Other distros (Docker)\n'

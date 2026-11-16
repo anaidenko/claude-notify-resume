@@ -31,6 +31,16 @@ jobs:
       # asserts on the arguments. Real delivery is the D-Bus job's business.
       - run: ./test/linux-suite.sh
 
+  npm-package:
+    name: npm package + installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # The installer runs against a stubbed `claude`; the package suite packs
+      # with --dry-run. Nothing is installed or published.
+      - run: ./test/install-suite.sh
+      - run: ./test/package-suite.sh
+
   linux-delivery:
     name: Linux delivery (D-Bus)
     runs-on: ubuntu-latest
