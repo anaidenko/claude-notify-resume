@@ -72,11 +72,15 @@ Updates can also arrive on their own: `/plugin` → **Marketplaces** → `anaide
 | `Input needed` | An MCP server opened an elicitation form |
 | `Background agent needs you` / `finished` | A background session wants input, or ended |
 
-**In the VS Code extension, only `Replied` arrives.** The other statuses come
-from Claude Code's `Notification` hook. The extension never fires that hook, and
-Anthropic has closed the request as not planned
-([anthropics/claude-code#55875](https://github.com/anthropics/claude-code/issues/55875)).
-Terminal sessions get every status.
+`Permission needed`, `Question for you` and `Plan ready` come about 6 seconds
+after the dialog opens, and only if it is still open then. A dialog you answer
+straight away sends no banner.
+
+**In the VS Code extension, `Replied`, `Permission needed`, `Question for you`
+and `Plan ready` arrive. `Waiting for you` does not:** the extension never
+reports Claude as idle, so there is nothing to notify about. The background
+agent statuses and `Input needed` have not been checked there yet. Terminal
+sessions get every status.
 
 If a notifier is missing or something else goes wrong, the plugin stays silent.
 A notification must never break your session.

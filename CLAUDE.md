@@ -166,22 +166,43 @@ do not "improve" error handling by surfacing errors to the user.
   pipes close (`… | cat`), never by timing the script's exit — the script exited
   fast in the bug too.
 
-- **The VS Code extension never runs `Notification` hooks, by design.** `Stop`
-  fires there, so `Replied` banners arrive and the plugin looks healthy. But
-  `Permission needed`, `Waiting for you` and every other Notification-based
-  status cannot fire in a side-panel session, and no hooks.json change will
-  help. This is not a bug awaiting a fix. Anthropic said in #11156 that it has
-  "no plans to support the Notification hook from the IDE", and closed the
-  canonical #55875 as not planned. `PermissionRequest` hooks *do* run in the
-  extension. **Transcripts cannot diagnose this:** they record no `Notification`
-  hook event even from the CLI, where it does fire. So "absent from every
-  transcript" proves nothing, and that is the signal this entry first rested on.
-  Read the extension's DEBUG log instead:
-  `~/Library/Application Support/Code/logs/<session>/window<N>/exthost/Anthropic.claude-code/Claude VSCode.log`
-  prints `Hooks: <Event> [command hook N] (plugin …)` for every hook it runs.
-  On 2026-11-16, seven days of logs showed thousands of hook runs and not one
-  `Notification`. Newer Claude Code names a hook `command hook N` rather than
-  by its script, so match by plugin and order.
+- **The VS Code extension runs `permission_prompt`, but never `idle_prompt`.**
+  So the dialog statuses arrive there and `Waiting for you` never does: seven
+  days of logs hold no `idle_prompt`, though a matcher-less user hook would
+  have logged one. This entry once said the extension skips `Notification`
+  hooks by design, from a grep for `Hooks: Notification` that cannot match.
+  `Stop` logs as `Hooks: Stop [command hook N] (plugin …)`, but this event as
+  `Notification:<type> [command hook N] completed with status N`, with no
+  prefix and no plugin name. Grepped that way, extension 2.1.322 ran
+  `Notification:permission_prompt` 10 times on 14 and 16 Nov 2026, and each
+  banner was delivered. #55875 ("Notification hooks not firing for
+  permission_prompt in VS Code extension") was closed as not planned on
+  2026-06-30: an issue's state says nothing about the build in front of you.
+  Transcripts record no `Notification` event in any host, so read the
+  extension's DEBUG log:
+  `~/Library/Application Support/Code/logs/<session>/window<N>/exthost/Anthropic.claude-code/Claude VSCode.log`.
+  The background-agent and MCP-elicitation statuses are unchecked there.
+- **`permission_prompt` is a "still waiting" signal, not "a dialog opened".**
+  It fires about 6 s after the dialog appears, and only if it is still open:
+  answered within 2–4 s, it never fires, in the CLI and VS Code alike.
+  `PermissionRequest` is the instant one. It fires on every dialog shown to a
+  human, but not on decisions the auto-mode classifier makes alone. Its hooks
+  race the dialog rather than delay it, and only JSON on stdout can change the
+  decision; exit 2 does not. Do not add it for banners: it would send an
+  instant duplicate for every dialog, even one answered in a second.
+- **The pending tool comes from the transcript, not the payload.** A question
+  (`AskUserQuestion`) and a plan (`ExitPlanMode`) arrive as plain
+  `permission_prompt`, with no tool name. The message text cannot stand in for
+  one: VS Code says "…permission to use AskUserQuestion", while the CLI says
+  only "Claude needs your permission". So the parser takes the last `tool_use`
+  that no `tool_result` answers yet. It is written about 6 s before the hook
+  fires. Any other dialog, such as one of several parallel calls, stays
+  `Permission needed`.
+- **A nested `claude` inherits the session's environment.** Started from inside
+  a Claude session, it gets `CLAUDE_CODE_ENTRYPOINT=claude-vscode` and
+  `CLAUDE_CODE_CHILD_SESSION=1`, which turns its transcripts off, so a CLI
+  experiment silently tests something else. Run it under `env -i`. Its
+  folder-trust dialog then defaults to "No, exit", so answer it deliberately.
 - **Launch Services can forget the icon bundle, and then every banner is
   refused.** By November 2026 the bundle had dropped out of `lsregister -dump`
   (most likely in the macOS 27.2 update; that part is unproven). It lives in a

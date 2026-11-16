@@ -36,6 +36,9 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 - Without the Xcode Command Line Tools, the icon setup deleted the existing
   notifier app before discovering it could not build a new one.
+- The README said that VS Code sessions get only `Replied`. They also get
+  `Permission needed`, and with it `Question for you` and `Plan ready`; only
+  `Waiting for you` never arrives there.
 
 ## 1.5.0 — 2026-11-16
 
