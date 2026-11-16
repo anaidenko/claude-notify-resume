@@ -11,6 +11,7 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALLER="$REPO_ROOT/bin/claude-notify-resume.js"
+PLUGIN_ID="claude-notify-resume@anaidenko"
 PASS=0
 FAIL=0
 
@@ -133,6 +134,48 @@ contains "--help: shows the npx line" "npx @anaidenko/claude-notify-resume" "$OU
 run -- --bogus
 check "an unknown flag: exits 1" "1" "$CODE"
 check "an unknown flag: calls nothing" "" "$CALLS"
+
+# ── --uninstall ──
+# HOME points at a scratch dir holding what the plugin leaves behind, so the
+# real one is never touched. XDG_* are blanked so the HOME defaults apply.
+FAKE_HOME="$(mktemp -d)"
+trap 'rm -rf "$STUB_BIN" "$EMPTY_BIN" "${TOOLS_BIN:-}" "$FAKE_HOME"' EXIT
+seed_home() {
+    rm -rf "$FAKE_HOME" && mkdir -p "$FAKE_HOME"
+    mkdir -p "$FAKE_HOME/.claude/claude-code-notify/Claude Code.app" "$FAKE_HOME/.local/state/claude-code-notify"
+    printf 'MUTE=Replied\n' >"$FAKE_HOME/.claude/claude-notify-resume.conf"
+}
+UNINSTALL_ENV=(HOME="$FAKE_HOME" XDG_STATE_HOME= XDG_CONFIG_HOME=)
+
+seed_home
+run "${UNINSTALL_ENV[@]}" STUB_PLUGINS="$INSTALLED" -- --uninstall
+check "--uninstall: removes the user install, and touches no marketplace" \
+    "plugin list --json | plugin uninstall $PLUGIN_ID" "$CALLS"
+check "--uninstall: exits 0" "0" "$CODE"
+contains "--uninstall: says so" "Uninstalled $PLUGIN_ID" "$OUT"
+check "--uninstall: removes the click state and icon app" "gone" "$([ -e "$FAKE_HOME/.claude/claude-code-notify" ] && echo there || echo gone)"
+check "--uninstall: removes the Linux state dir" "gone" "$([ -e "$FAKE_HOME/.local/state/claude-code-notify" ] && echo there || echo gone)"
+contains "--uninstall: reports what it removed" "Removed ~/.claude/claude-code-notify" "$OUT"
+check "--uninstall: keeps the user's config" "kept" "$([ -f "$FAKE_HOME/.claude/claude-notify-resume.conf" ] && echo kept || echo gone)"
+contains "--uninstall: says where the config is" "Kept your config: ~/.claude/claude-notify-resume.conf" "$OUT"
+contains "--uninstall: points at the marketplace it leaves" "claude plugin marketplace remove anaidenko" "$OUT"
+
+seed_home
+run "${UNINSTALL_ENV[@]}" -- --uninstall
+check "--uninstall, not installed: only looks" "plugin list --json" "$CALLS"
+check "--uninstall, not installed: exits 0" "0" "$CODE"
+contains "--uninstall, not installed: says so" "was not installed for your user" "$OUT"
+
+run "${UNINSTALL_ENV[@]}" STUB_PLUGINS="[{\"id\":\"$PLUGIN_ID\",\"scope\":\"project\",\"projectPath\":\"/work/app\"}]" -- --uninstall
+check "--uninstall, project scope only: removes nothing it cannot reach" "plugin list --json" "$CALLS"
+contains "--uninstall, project scope only: names it" "Still installed with --scope project in /work/app" "$OUT"
+
+run "${UNINSTALL_ENV[@]}" STUB_PLUGINS="$INSTALLED" STUB_FAIL_ON="plugin uninstall $PLUGIN_ID" -- --uninstall
+check "--uninstall: a failing uninstall exits 1" "1" "$CODE"
+
+run -- --uninstall --bogus
+check "--uninstall with a stray flag: exits 1" "1" "$CODE"
+check "--uninstall with a stray flag: calls nothing" "" "$CALLS"
 
 printf '\n%d passed, %d failed\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

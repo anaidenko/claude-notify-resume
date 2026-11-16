@@ -4,6 +4,20 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## Unreleased
+
+### Added
+
+- Uninstalling is one command: `npx @anaidenko/claude-notify-resume --uninstall`.
+  It removes the plugin, its state and the macOS icon app, which
+  `claude plugin uninstall` alone leaves behind. A config file you created is
+  kept, and its path is printed.
+
+### Changed
+
+- When the plugin is already up to date, the installer now says so, instead of
+  reporting an update it did not make.
+
 ## 1.4.0 — 2026-11-16
 
 ### Added

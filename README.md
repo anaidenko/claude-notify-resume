@@ -126,12 +126,20 @@ variable, such as `CLAUDE_NOTIFY_MUTE`, which overrides the file.
 ## Uninstall
 
 ```bash
-claude plugin uninstall claude-notify-resume@anaidenko
-rm -rf ~/.claude/claude-code-notify   # macOS: the plugin's state, and the icon app if you set it up
-rm -rf ~/.local/state/claude-code-notify   # Linux: the plugin's state
+npx @anaidenko/claude-notify-resume --uninstall
 ```
 
-Remove `~/.claude/claude-notify-resume.conf` too, if you created one.
+This removes the plugin, its state and the macOS icon app. A config file you
+created stays where it is, and the command prints its path.
+
+<details>
+<summary>The same by hand</summary>
+
+```bash
+claude plugin uninstall claude-notify-resume@anaidenko
+rm -rf ~/.claude/claude-code-notify ~/.local/state/claude-code-notify
+```
+</details>
 
 ## Contributing
 
