@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Installs claude-notify-resume into Claude Code, or updates it if it is
-// already installed.
+// Installs this plugin into Claude Code, or updates it if it is already
+// installed.
 //
 //   npx @anaidenko/claude-notify-resume
 //   npx @anaidenko/claude-notify-resume --help
@@ -10,20 +10,27 @@
 // That keeps one delivery path for installed copies, whichever way they were
 // first installed.
 //
-// This is NOT a hook. The hooks follow the repo's one rule: never break the
-// session, so every failure exits 0 silently. This file runs once, by hand, and
-// a failure nobody sees is a failure nobody fixes. Here every failure exits
-// non-zero and says why. Do not "align" it with the hooks.
+// This is not a hook, so the hooks' rule (fail silently, exit 0) does not
+// apply: it runs once, by hand, and a failure nobody sees is a failure
+// nobody fixes. Every failure exits non-zero and says why.
+//
+// Everything above nextSteps() is shared with the other anaidenko plugins'
+// installers and reads its names from the manifests, so keep it identical.
 'use strict';
 
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const ROOT = path.join(__dirname, '..');
+const readJson = file => JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+const PLUGIN = readJson('.claude-plugin/plugin.json').name;
+const PACKAGE = readJson('package.json');
+
 const MARKETPLACE = 'anaidenko';
 const MARKETPLACE_REPO = 'anaidenko/claude-plugins';
-const PLUGIN_ID = 'claude-notify-resume@anaidenko';
-const README = 'https://github.com/anaidenko/claude-notify-resume#readme';
+const PLUGIN_ID = `${PLUGIN}@${MARKETPLACE}`;
+const README = `${PACKAGE.homepage}#readme`;
 
 function fail(message) {
     process.stderr.write(`\n${message}\n`);
@@ -31,11 +38,11 @@ function fail(message) {
 }
 
 function usage() {
-    process.stdout.write(`Usage: npx @anaidenko/claude-notify-resume
+    process.stdout.write(`Usage: npx ${PACKAGE.name}
 
-Installs the claude-notify-resume plugin into Claude Code, or updates it if it
-is already installed. It adds the ${MARKETPLACE_REPO} marketplace when
-missing, then runs \`claude plugin install\` (or \`update\`).
+Installs the ${PLUGIN} plugin into Claude Code, or updates it if it is
+already installed. It adds the ${MARKETPLACE_REPO} marketplace when missing,
+then runs \`claude plugin install\` (or \`update\`).
 
 Details: ${README}
 `);
@@ -84,11 +91,8 @@ function describe(entry) {
 }
 
 function onPath(cmd) {
-    const dirs = (process.env.PATH || '').split(path.delimiter);
-    // Homebrew's prefixes: the hook finds the notifier there even when the
-    // shell running this installer has them off PATH.
-    dirs.push('/opt/homebrew/bin', '/usr/local/bin');
-    return dirs.some(d => d && fs.existsSync(path.join(d, cmd)));
+    return (process.env.PATH || '').split(path.delimiter)
+        .some(d => d && fs.existsSync(path.join(d, cmd)));
 }
 
 function main() {
@@ -103,8 +107,7 @@ function main() {
     }
 
     if (process.platform === 'win32') {
-        fail('claude-notify-resume supports macOS and Linux only; Windows has no\n' +
-            `notification path yet. See ${README}`);
+        fail(`${PLUGIN} supports macOS and Linux only. See ${README}`);
     }
 
     const marketplaces = claudeJson(['plugin', 'marketplace', 'list']);
@@ -113,10 +116,9 @@ function main() {
     if (!entry) {
         claude(['plugin', 'marketplace', 'add', MARKETPLACE_REPO]);
     } else if (!isOurs(entry)) {
-        // Early installs used the plugin's own repo as the marketplace. That
-        // repo no longer carries a marketplace.json, so such an entry is dead,
-        // but removing a user's marketplace can take its plugins with it.
-        // That is their call, not this script's.
+        // An early install may have registered a plugin's own repo under this
+        // name. Removing a user's marketplace can take its plugins with it, so
+        // that is their call, not this script's.
         fail(`A marketplace named "${MARKETPLACE}" already exists, but it points at\n` +
             `${describe(entry)}, not ${MARKETPLACE_REPO}. It is most likely left over\n` +
             'from an older install. To replace it, run:\n\n' +
@@ -132,18 +134,27 @@ function main() {
 
     claude(['plugin', installed ? 'update' : 'install', PLUGIN_ID]);
 
-    const next = ['Restart Claude Code to load the hooks: hook config is read at startup.'];
-    if (process.platform === 'darwin' && !onPath('terminal-notifier')) {
-        next.push('For click-to-resume on macOS: brew install terminal-notifier');
-    }
-    if (process.platform === 'linux' && !onPath('notify-send')) {
-        next.push('Banners need notify-send: sudo apt install libnotify-bin (or your distro\'s package)');
-    }
     // `claude plugin update` succeeds whether or not there was anything newer,
     // so claim only what is true either way.
     const done = installed ? `${PLUGIN_ID} is installed and up to date.` : `Installed ${PLUGIN_ID}.`;
     process.stdout.write(`\n${done}\n` +
-        next.map(line => `  - ${line}`).join('\n') + `\n\nMore: ${README}\n`);
+        nextSteps().map(line => `  - ${line}`).join('\n') + `\n\nMore: ${README}\n`);
+}
+
+// What this plugin needs after install. The hooks run without any of it and
+// stay silent; this only says what would make the banners work fully.
+function nextSteps() {
+    const steps = ['Restart Claude Code to load the hooks: hook config is read at startup.'];
+    // The hook finds Homebrew's notifier even when this shell has it off PATH.
+    const found = cmd => onPath(cmd) ||
+        ['/opt/homebrew/bin', '/usr/local/bin'].some(d => fs.existsSync(path.join(d, cmd)));
+    if (process.platform === 'darwin' && !found('terminal-notifier')) {
+        steps.push('For click-to-resume on macOS: brew install terminal-notifier');
+    }
+    if (process.platform === 'linux' && !found('notify-send')) {
+        steps.push("Banners need notify-send: sudo apt install libnotify-bin (or your distro's package)");
+    }
+    return steps;
 }
 
 main();
