@@ -8,11 +8,12 @@ description: Use when cutting a new version of claude-notify-resume (asked to re
 A release is one commit plus one annotated tag on `main`. Pushing the tag runs
 [publish.yml](../../../.github/workflows/publish.yml), which publishes
 `@anaidenko/claude-notify-resume` to npm and then creates the GitHub Release.
-Marketplace users get the new version through `plugin.json`.
+Marketplace users get it from npm too: the marketplace installs the package's
+`latest`, so the release reaches them once that run has published it.
 
 Two actions here cannot be undone: the push, and (first release on npm only)
-the hand-published release candidate. An npm version is permanent, and installed
-copies pick up a bump on `main`. **Ask before each of them**, and show exactly
+the hand-published release candidate. An npm version is permanent, and whatever
+becomes `latest` goes to every installed copy. **Ask before each of them**, and show exactly
 what will go out. Everything else is local and can be undone.
 
 ## 1. Preflight
@@ -126,7 +127,7 @@ Then report the Release and npm links, plus the update line for users:
 `claude plugin marketplace update anaidenko && claude plugin update claude-notify-resume@anaidenko`.
 
 The marketplace repo (`anaidenko/claude-plugins`) needs no change, unless the
-plugin's description or repo URL changed (CONTRIBUTING → The marketplace).
+plugin's description or npm package name changed (CONTRIBUTING → The marketplace).
 
 ## When the Publish run fails
 
@@ -159,7 +160,9 @@ terminal, then check the result yourself with `npm view`.
    ```
    The rc is built from the pre-bump tree. Its `plugin.json` still says the
    previous version, and its CHANGELOG has no `X.Y.Z` section. That is
-   harmless, since npm does not deliver the plugin. Leave it as it is.
+   harmless: it goes out under `next`, and the marketplace installs only
+   `latest`. Leave it as it is. Never drop `--tag next`, though: without it the
+   rc becomes `latest` and reaches every marketplace user.
 
    **Expect a placeholder first.** npm answers "Your package is being
    processed", and for about 2 minutes `npm view … versions` lists only

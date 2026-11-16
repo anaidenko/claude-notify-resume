@@ -170,8 +170,9 @@ none, so the two cannot drift. `publish.yml` injects it at publish time.
 ### npm
 
 The package [`@anaidenko/claude-notify-resume`](https://www.npmjs.com/package/@anaidenko/claude-notify-resume)
-carries the `npx` installer. Installed copies still come from the marketplace,
-never from npm.
+is both the `npx` installer and the installed plugin: the marketplace installs
+its `latest`, so a release reaches users once `publish.yml` has published it.
+`files` in `package.json` must therefore carry everything the plugin runs.
 
 - **No token anywhere.** CI publishes through npm Trusted Publishing (OIDC).
   The trusted publisher on npmjs.com names the workflow file, so renaming
@@ -190,13 +191,13 @@ never from npm.
 ### The marketplace
 
 The plugin is served from [anaidenko/claude-plugins](https://github.com/anaidenko/claude-plugins),
-which references this repo by URL. **A release does not touch it:** versions are
-read from `plugin.json` at install time, and the manifest deliberately carries no
-`version` field to keep in sync.
+which installs it from the npm package. **A release does not touch it:** the
+installed version is read from the package's `plugin.json`, and the manifest
+deliberately carries no `version` field to keep in sync.
 
-It does need an edit when this repo is renamed or moved (its `url` there points
-at the old location) or when the one-line description users see in the plugin
-browser changes — that copy lives in the manifest, not here.
+It does need an edit when the npm package is renamed, or when the one-line
+description users see in the plugin browser changes — that copy lives in the
+manifest, not here. Renaming or moving this repo does not affect it.
 
 Note that this repo has no `marketplace.json` of its own, deliberately.
 Marketplaces are keyed by the `name` inside that file rather than by repo URL,
