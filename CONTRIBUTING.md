@@ -33,6 +33,47 @@ Add a distro by passing it through:
 ./test/run-linux-tests.sh debian:trixie-slim
 ```
 
+## How it works
+
+Claude Code hands a hook a JSON payload on stdin: `session_id`,
+`transcript_path`, `cwd`. The chat name is not in it, so `notify-parse.js` reads
+the transcript. A manual rename (a `custom-title` record) wins over the
+AI-generated `ai-title`. Neither record is a documented API; if both disappear,
+the banner falls back to the project directory name.
+
+On macOS the banner's icon comes from the **posting application**:
+`terminal-notifier`'s `-appIcon` / `-contentImage` do not reach that slot. So
+`setup-macos-icon.sh` compiles a small real app, `scripts/claude-notify.swift`,
+which posts natively and receives the click itself. The session id rides inside
+each notification. Spoofing the sender with `-sender` was tried first: it
+swallows the body click, and its click-to-launch behaviour proved flaky.
+
+| File | Role |
+| --- | --- |
+| `hooks/hooks.json` | Declares the `Stop` / `Notification` hooks |
+| `scripts/notify.sh` | Parses the payload, resolves the chat name and host app, dispatches per platform |
+| `scripts/notify-parse.js` | Reads the payload and the chat title from the transcript |
+| `scripts/notify-macos.sh` / `notify-linux.sh` | Build and send the banner |
+| `scripts/open-session.sh` | Reopens a session when a banner is clicked |
+| `scripts/load-config.sh` | Reads the config file, letting the environment win |
+| `scripts/setup-macos-icon.sh` | Compiles and installs the icon app (macOS) |
+| `scripts/claude-notify.swift` | The icon app: posts natively, handles the click |
+| `bin/claude-notify-resume.js` | The `npx` installer (not a hook) |
+
+`auth_success`, `elicitation_complete` and `elicitation_response` are
+deliberately not subscribed: they announce things the user just watched happen.
+
+To fire a banner by hand, set `CLAUDE_NOTIFY_TEST=1` so it is prefixed `TEST ·`
+and never mistaken for a real one:
+
+```bash
+echo '{"session_id":"x","transcript_path":"","cwd":"'"$PWD"'"}' \
+  | CLAUDE_NOTIFY_TEST=1 scripts/notify.sh "Replied"
+```
+
+(Not `[TEST]`: `terminal-notifier` swallows a `-title` starting with `[` and
+falls back to "Terminal".)
+
 ## The one rule
 
 **A hook must never break the user's session.** Claude Code runs these scripts
