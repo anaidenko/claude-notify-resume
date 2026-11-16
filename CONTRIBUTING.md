@@ -48,6 +48,10 @@ which posts natively and receives the click itself. The session id rides inside
 each notification. Spoofing the sender with `-sender` was tried first: it
 swallows the body click, and its click-to-launch behaviour proved flaky.
 
+The npx installer runs that script from the installed plugin, so users never
+type its path. `notify-macos.sh` tries senders best first: the app, then
+`terminal-notifier` (clickable, no icon), then AppleScript (neither).
+
 | File | Role |
 | --- | --- |
 | `hooks/hooks.json` | Declares the `Stop` / `Notification` hooks |
@@ -56,7 +60,7 @@ swallows the body click, and its click-to-launch behaviour proved flaky.
 | `scripts/notify-macos.sh` / `notify-linux.sh` | Build and send the banner |
 | `scripts/open-session.sh` | Reopens a session when a banner is clicked |
 | `scripts/load-config.sh` | Reads the config file, letting the environment win |
-| `scripts/setup-macos-icon.sh` | Compiles and installs the icon app (macOS) |
+| `scripts/setup-macos-icon.sh` | Compiles and installs the icon app (macOS); the npx installer runs it |
 | `scripts/claude-notify.swift` | The icon app: posts natively, handles the click |
 | `bin/claude-notify-resume.js` | The `npx` installer (not a hook) |
 

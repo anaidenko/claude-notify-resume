@@ -136,7 +136,10 @@ printf '\n' >>"$FALLBACK_LOG"
 exit 0
 STUB
 chmod +x "$FALLBACK_BIN/osascript"
-PATH="$FALLBACK_BIN:/usr/bin:/bin" "$REPO_ROOT/scripts/notify-macos.sh" \
+# The state dir matters: the icon app outranks every other sender, and the
+# real one in ~/.claude would post a real banner.
+PATH="$FALLBACK_BIN:/usr/bin:/bin" CLAUDE_NOTIFY_STATE_DIR="$FALLBACK_BIN/state" \
+    "$REPO_ROOT/scripts/notify-macos.sh" \
     "Replied" 'A title with "quotes"' "s1" "$REPO_ROOT" >/dev/null 2>&1
 SENT="$(cat "$FALLBACK_LOG" 2>/dev/null)"
 rm -rf "$FALLBACK_BIN"
@@ -262,6 +265,57 @@ printf '0\n' >"$NATIVE_QUEUE"
 env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$NATIVE_STATE" \
     "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" "vscode:7:123" >/dev/null 2>&1
 contains "a native banner carries the host to its click" "claude-s1 vscode:7:123" "$(cat "$STUB_LOG")"
+
+printf '\nWithout terminal-notifier\n'
+
+# The app posts by itself, so terminal-notifier is a fallback, not a
+# requirement. It used to be checked first: without it, every banner went
+# through AppleScript even with the app built — no icon, and no click.
+NO_TN_BIN="$STUB_BIN/no-tn"
+mkdir -p "$NO_TN_BIN"
+for tool in osascript lsregister; do ln -s "$STUB_BIN/$tool" "$NO_TN_BIN/$tool"; done
+cat >"$NO_TN_BIN/pbcopy" <<STUB
+#!/bin/bash
+printf 'pbcopy %s\n' "\$(cat)" >>"$STUB_LOG"
+STUB
+chmod +x "$NO_TN_BIN/pbcopy"
+
+# no_tn_probe <exit status>...: native_probe with terminal-notifier absent.
+no_tn_probe() {
+    printf '2' >"$NATIVE_APP/Contents/Resources/native-notifier"
+    printf '%s\n' "$@" >"$NATIVE_QUEUE"
+    : >"$STUB_LOG"
+    env PATH="$NO_TN_BIN:/usr/bin:/bin" CLAUDE_NOTIFY_STATE_DIR="$NATIVE_STATE" \
+        "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" >/dev/null 2>&1
+    awk '{ print $1 }' "$STUB_LOG" | paste -sd, -
+}
+check "the app posts with no terminal-notifier" "claude-notify" "$(no_tn_probe 0)"
+check "a refused app falls back to AppleScript" \
+    "claude-notify,lsregister,claude-notify,osascript" "$(no_tn_probe 3 3)"
+
+printf '\nSetup hint\n'
+
+# Offered once, as a banner. What it copies must outlive the version that
+# copied it: a path into the plugin cache is deleted by the next update, so it
+# is the npx installer instead. HOME stands in for the real one, because the
+# hint is only ever offered for the default state dir.
+HINT_HOME="$STUB_BIN/hint-home"
+hint_probe() {
+    : >"$STUB_LOG"
+    env -u CLAUDE_NOTIFY_STATE_DIR -u CLAUDE_NOTIFY_BIN HOME="$HINT_HOME" PATH="$1" \
+        "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "chat" "s1" "$REPO_ROOT" >/dev/null 2>&1
+    cat "$STUB_LOG"
+}
+SENT="$(hint_probe "$STUB_BIN:$NO_TN_BIN:/usr/bin:/bin")"
+contains "the hint copies the npx installer" "pbcopy npx @anaidenko/claude-notify-resume" "$SENT"
+contains "the hint arrives as a banner" "-title Want the Claude icon on these?" "$SENT"
+contains "the real banner still follows" "-title Replied" "$SENT"
+SENT="$(hint_probe "$STUB_BIN:$NO_TN_BIN:/usr/bin:/bin")"
+check "the hint is offered once" "0" "$(printf '%s\n' "$SENT" | grep -c pbcopy)"
+rm -rf "$HINT_HOME"
+SENT="$(hint_probe "$NO_TN_BIN:/usr/bin:/bin")"
+contains "with no terminal-notifier, the hint offers clicks" "Want clickable banners?" "$SENT"
+rm -rf "$HINT_HOME"
 
 printf '\nDetached delivery\n'
 

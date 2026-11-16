@@ -4,6 +4,32 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## Unreleased
+
+### Added
+
+- On macOS, the installer also builds the notifier app that gives banners the
+  Claude icon and makes them clickable. It builds from the plugin it has just
+  installed, so running the installer again after an update rebuilds it too.
+  Nobody has to find `setup-macos-icon.sh` in the plugin cache any more. If the
+  Xcode Command Line Tools are missing, the installer says how to get them.
+
+### Changed
+
+- `terminal-notifier` is no longer needed on macOS once the notifier app is
+  built. Before, without it every banner went through AppleScript, even with the
+  app in place, so banners had neither the icon nor a click. It remains the
+  fallback when the app is missing or refused.
+- The one-time setup banner now copies `npx @anaidenko/claude-notify-resume`
+  rather than a path into the plugin cache, which the next update deleted.
+- The icon setup prints the System Settings steps only when macOS actually
+  refused the test banner.
+
+### Fixed
+
+- Without the Xcode Command Line Tools, the icon setup deleted the existing
+  notifier app before discovering it could not build a new one.
+
 ## 1.5.0 — 2026-11-16
 
 ### Added

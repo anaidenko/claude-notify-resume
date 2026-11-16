@@ -191,20 +191,49 @@ function main() {
 
 // ── This plugin ──────────────────────────────────────────────────────────────
 
-// What it needs after install. The hooks run without any of it and stay
-// silent; this only says what would make the banners work fully.
+// Runs after every install or update; returns the closing report's lines. The
+// hooks work without any of this and stay silent; it makes banners work fully.
 function nextSteps() {
     const steps = ['Restart Claude Code to load the hooks: hook config is read at startup.'];
-    // The hook finds Homebrew's notifier even when this shell has it off PATH.
-    const found = cmd => onPath(cmd) ||
-        ['/opt/homebrew/bin', '/usr/local/bin'].some(d => fs.existsSync(path.join(d, cmd)));
-    if (process.platform === 'darwin' && !found('terminal-notifier')) {
-        steps.push('For click-to-resume on macOS: brew install terminal-notifier');
-    }
+    if (process.platform === 'darwin') steps.push(...buildMacApp());
     if (process.platform === 'linux' && !found('notify-send')) {
         steps.push("Banners need notify-send: sudo apt install libnotify-bin (or your distro's package)");
     }
     return steps;
+}
+
+// The hooks find Homebrew's tools even when this shell has them off PATH.
+function found(cmd) {
+    return onPath(cmd) ||
+        ['/opt/homebrew/bin', '/usr/local/bin'].some(d => fs.existsSync(path.join(d, cmd)));
+}
+
+// Compiles the macOS notifier app: the Claude icon on banners, and a click
+// that reopens the chat. It is built from the copy just installed, so the
+// binary always matches the hooks that call it, and running this installer
+// again after an update rebuilds it. A failure here costs the icon, not the
+// install, so it becomes a report line rather than an exit code.
+function buildMacApp() {
+    // Without the app, terminal-notifier is what makes a banner clickable.
+    const want = found('terminal-notifier') ? 'For the Claude icon on banners'
+        : 'For clickable banners with the Claude icon';
+    const retry = `then run \`npx ${PACKAGE.name}\` again`;
+    // /usr/bin/swiftc exists on every Mac; only this says it can compile.
+    const tools = spawnSync('xcode-select', ['-p'], { stdio: 'ignore' });
+    if (tools.error || tools.status !== 0) {
+        return [`${want}: install the Xcode Command Line Tools (xcode-select --install), ${retry}.`];
+    }
+    const entry = installedEntries().find(p => p.installPath);
+    const setup = entry && path.join(entry.installPath, 'scripts', 'setup-macos-icon.sh');
+    if (!setup || !fs.existsSync(setup)) {
+        return [`${want}: the installed plugin was not found, so the notifier app was not built; ${retry}.`];
+    }
+    process.stdout.write('\nBuilding the notifier app for the Claude icon and click-to-resume:\n');
+    const r = spawnSync('/bin/bash', [setup], { stdio: 'inherit' });
+    if (r.error || r.status !== 0) {
+        return [`${want}: the notifier app was not built (see above); fix that, ${retry}.`];
+    }
+    return [];
 }
 
 // Directories it keeps outside Claude Code, removed by --uninstall: the click

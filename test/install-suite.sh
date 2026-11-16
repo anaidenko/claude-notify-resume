@@ -25,17 +25,33 @@ EMPTY_BIN="$(mktemp -d)"
 STUB_LOG="$STUB_BIN/calls.log"
 trap 'rm -rf "$STUB_BIN" "$EMPTY_BIN"' EXIT
 
+# STUB_PLUGINS_AFTER, when set, is the plugin list once `plugin install` has run.
 cat >"$STUB_BIN/claude" <<STUB
 #!/bin/bash
 printf '%s\n' "\$*" >>"$STUB_LOG"
 case "\$*" in
     "plugin marketplace list --json") printf '%s\n' "\${STUB_MARKETPLACES:-[]}" ;;
-    "plugin list --json") printf '%s\n' "\${STUB_PLUGINS:-[]}" ;;
+    "plugin list --json")
+        if [ -n "\${STUB_PLUGINS_AFTER:-}" ] && grep -q '^plugin install' "$STUB_LOG"; then
+            printf '%s\n' "\$STUB_PLUGINS_AFTER"
+        else
+            printf '%s\n' "\${STUB_PLUGINS:-[]}"
+        fi
+        ;;
     *) [ -n "\${STUB_FAIL_ON:-}" ] && [ "\$*" = "\$STUB_FAIL_ON" ] && exit 7 ;;
 esac
 exit 0
 STUB
 chmod +x "$STUB_BIN/claude"
+
+# On macOS the installer builds the notifier app once the Xcode tools answer.
+# Missing by default, so the checks below see no build; STUB_CLT=1 has them.
+cat >"$STUB_BIN/xcode-select" <<'STUB'
+#!/bin/bash
+[ "${STUB_CLT:-}" = 1 ] && { echo /Library/Developer/CommandLineTools; exit 0; }
+exit 2
+STUB
+chmod +x "$STUB_BIN/xcode-select"
 
 check() {
     local name="$1" expected="$2" actual="$3"
@@ -134,6 +150,42 @@ contains "--help: shows the npx line" "npx @anaidenko/claude-notify-resume" "$OU
 run -- --bogus
 check "an unknown flag: exits 1" "1" "$CODE"
 check "an unknown flag: calls nothing" "" "$CALLS"
+
+# ── the macOS notifier app ──
+# Built from the copy `claude plugin list` reports, never from this package,
+# so the binary matches the hooks that call it. A stand-in setup script
+# records its run; nothing is compiled.
+if [ "$(uname -s)" = "Darwin" ]; then
+    printf '\n═══ macOS notifier app\n'
+    FAKE_PLUGIN="$STUB_BIN/cache/claude-notify-resume/1.5.0"
+    mkdir -p "$FAKE_PLUGIN/scripts"
+    cat >"$FAKE_PLUGIN/scripts/setup-macos-icon.sh" <<STUB
+#!/bin/bash
+printf 'setup-macos-icon.sh\n' >>"$STUB_LOG"
+exit "\${STUB_SETUP_RC:-0}"
+STUB
+    WITH_PATH="[{\"id\":\"$PLUGIN_ID\",\"version\":\"1.5.0\",\"scope\":\"user\",\"installPath\":\"$FAKE_PLUGIN\"}]"
+
+    run
+    contains "no Xcode tools: says how to get them" "xcode-select --install" "$OUT"
+    check "no Xcode tools: exits 0, the plugin is installed" "0" "$CODE"
+
+    run STUB_CLT=1 STUB_PLUGINS_AFTER="$WITH_PATH"
+    check "fresh install: builds the app from the installed copy" \
+        "plugin marketplace list --json | plugin marketplace add anaidenko/claude-plugins | plugin list --json | plugin install $PLUGIN_ID | plugin list --json | setup-macos-icon.sh" \
+        "$CALLS"
+    check "fresh install: exits 0" "0" "$CODE"
+
+    run STUB_CLT=1 STUB_MARKETPLACES="$OURS_GITHUB" STUB_PLUGINS="$WITH_PATH"
+    contains "an update rebuilds the app" "plugin update $PLUGIN_ID | plugin list --json | setup-macos-icon.sh" "$CALLS"
+
+    run STUB_CLT=1 STUB_PLUGINS_AFTER="$WITH_PATH" STUB_SETUP_RC=1
+    check "a failed build still exits 0" "0" "$CODE"
+    contains "a failed build is reported" "the notifier app was not built" "$OUT"
+
+    run STUB_CLT=1 STUB_PLUGINS_AFTER="[{\"id\":\"$PLUGIN_ID\",\"installPath\":\"/nonexistent\"}]"
+    contains "a missing install path is reported" "the installed plugin was not found" "$OUT"
+fi
 
 # ── --uninstall ──
 # HOME points at a scratch dir holding what the plugin leaves behind, so the

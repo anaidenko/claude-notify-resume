@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Build the tiny .app bundle that gives the banner its Claude icon (macOS takes
 # the banner icon from the sending application, and ignores terminal-notifier's
-# -appIcon/-contentImage for that slot). Part of the macOS setup.
+# -appIcon/-contentImage for that slot). The npx installer runs it on macOS,
+# from the installed copy, so nobody has to type this path.
 #
 #   setup-macos-icon.sh            build it, then send a test banner
 #   setup-macos-icon.sh remove     delete it (banners keep working, no icon)
 #
-# Notifications still work without it — the plugin falls back to the terminal's
-# own icon, and then the whole banner is clickable, because the -sender flag that
-# carries a custom icon also swallows the body click. With the bundle installed,
-# "Show" is how you resume.
+# The app posts natively and receives its own clicks, so with it installed
+# banners need neither terminal-notifier nor AppleScript. Without it they still
+# work, through terminal-notifier (clickable, no Claude icon) or AppleScript
+# (neither).
 set -euo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,6 +37,15 @@ ICON="$PLUGIN_ROOT/assets/claude-logo.png"
     printf 'Icon not found: %s\n' "$ICON" >&2
     exit 1
 }
+
+# Before anything is deleted: a missing compiler must not cost a working app.
+# `command -v swiftc` alone proves nothing — /usr/bin/swiftc is a shim present
+# on every Mac, and without the tools it pops an install dialog and fails.
+if ! xcode-select -p >/dev/null 2>&1 || ! command -v swiftc >/dev/null 2>&1; then
+    printf 'The Xcode Command Line Tools are missing. Install them first:\n' >&2
+    printf '    xcode-select --install\n' >&2
+    exit 1
+fi
 
 mkdir -p "$STATE_DIR"
 rm -rf "$APP"
@@ -83,14 +93,11 @@ PLIST
 # A fake script-only bundle spoofed via -sender failed four undocumented ways in
 # one day — launch refusal, stale daemon bindings, delivery-time launches — and
 # swallowed the body click by design. A real app has none of those problems.
-if ! command -v swiftc >/dev/null 2>&1; then
-    printf 'swiftc not found — install the Xcode Command Line Tools first:\n' >&2
-    printf '    xcode-select --install\n' >&2
-    exit 1
-fi
-printf '  compiling the notifier binary (first run takes ~30s)…\n'
+printf '  compiling the notifier app (first run takes ~30s)…\n'
 if ! swiftc -O -o "$APP/Contents/MacOS/claude-notify" "$PLUGIN_ROOT/scripts/claude-notify.swift" 2>&1 | sed 's/^/    /'; then
-    printf 'compilation failed — the icon bundle was not built.\n' >&2
+    # A half-built bundle would stop the hooks from offering setup again.
+    rm -rf "$APP"
+    printf 'compilation failed — the notifier app was not built.\n' >&2
     exit 1
 fi
 touch "$APP"
@@ -106,30 +113,32 @@ printf '2\n' >"$APP/Contents/Resources/native-notifier"
 # it needs no developer account, and without it the Show button does nothing.
 codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
 
-# Launch Services must know the bundle or -sender silently falls back.
+# Launch Services must know the bundle, or usernoted refuses its posts.
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
     -f "$APP" >/dev/null 2>&1 || true
 
-printf '  ✓ built %s\n' "$APP"
+printf '  ✓ built %s: banners get the Claude icon, and a click reopens the chat\n' "$APP"
 
-printf '\n  ! Banners now carry the Claude icon, and clicking anywhere on one\n'
-printf '    reopens that chat — the bundle posts natively and receives its own\n'
-printf '    clicks. Run this script with "remove" to go back to plain banners.\n'
-
-if ! command -v terminal-notifier >/dev/null 2>&1; then
-    printf '\n  ! terminal-notifier is missing — install it:  brew install terminal-notifier\n'
-    exit 0
-fi
-
-printf '\n  ! One manual step: System Settings → Notifications → "Claude Code"\n'
-printf '    → turn ON "Allow notifications". A new app starts switched off, and\n'
-printf '    macOS then discards its banners with no error and exit code 0.\n'
-printf '    While you are there, set the style to "Alerts" so notifications stay\n'
-printf '    on screen instead of vanishing after a few seconds.\n'
-printf '    Open it with:  open "x-apple.systempreferences:com.apple.preference.notifications"\n'
-
+# The first post from a new app makes macOS ask whether it may notify; the post
+# waits for that answer. Its exit status is the verdict (claude-notify.swift):
+# 0 posted, 3 refused as a client, 4 switched off by the user. So the
+# permission walk-through is printed only when it is needed.
+printf '  sending a test banner (if macOS asks, choose Allow)…\n'
+rc=0
 "$APP/Contents/MacOS/claude-notify" post "TEST · Notifications are on" \
-    "Claude Code will notify you here." >/dev/null 2>&1 || true
-printf '\n  → Sent a test banner. If you did NOT see it, the permission above is\n'
-printf '    still off — delivery cannot be detected from a script, so this is\n'
-printf '    the only real check.\n'
+    "Claude Code will notify you here." >/dev/null 2>&1 || rc=$?
+SETTINGS='open "x-apple.systempreferences:com.apple.preference.notifications"'
+case "$rc" in
+    0)
+        printf '  ✓ sent. Not on screen? Check Focus, or System Settings → Notifications → Claude Code.\n'
+        ;;
+    4)
+        printf '\n  ! Notifications from "Claude Code" are switched off, so banners stay\n'
+        printf '    silent. Turn on "Allow notifications" for it in System Settings →\n'
+        printf '    Notifications:  %s\n' "$SETTINGS"
+        ;;
+    *)
+        printf '\n  ! macOS refused the test banner (status %s). The hooks re-register the\n' "$rc"
+        printf '    app and retry on each banner, and fall back to plain banners meanwhile.\n'
+        ;;
+esac

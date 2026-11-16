@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# macOS banner via terminal-notifier. Called by notify.sh with the fields it
-# already resolved: <status> <chat> <session-id> <cwd> [host]
+# macOS banner. Called by notify.sh with the fields it already resolved:
+# <status> <chat> <session-id> <cwd> [host]
+#
+# Senders, best first: the compiled icon app (Claude icon, clickable), then
+# terminal-notifier (clickable), then AppleScript (neither, but needs nothing
+# installed). The app needs no terminal-notifier: it posts by itself.
 set -uo pipefail
 
 STATUS="$1"
@@ -21,38 +25,44 @@ HOST="${5:-}"
 # notably the `\ ` that `printf %q` produces for a space.
 applescript_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
-# Fall back to AppleScript when terminal-notifier is absent, so the plugin
-# works on a bare macOS with nothing installed. The trade-off: `display
-# notification` shows the host app's icon (Script Editor) and supports no click
-# action, so terminal-notifier remains the better path when available.
-if ! command -v terminal-notifier >/dev/null 2>&1; then
-    osascript -e "display notification \"$(applescript_escape "$CHAT")\" with title \"$(applescript_escape "$STATUS")\" sound name \"Glass\"" >/dev/null 2>&1 || true
-    exit 0
-fi
+HAVE_TN=
+command -v terminal-notifier >/dev/null 2>&1 && HAVE_TN=1
+
+# plain_banner <title> <message>: a banner with no click action. Through
+# terminal-notifier when installed; else AppleScript, which works on a bare
+# macOS but shows Script Editor's icon, and opens Script Editor when clicked.
+plain_banner() {
+    if [ -n "$HAVE_TN" ]; then
+        terminal-notifier -title "$1" -message "$2" -sound Glass >/dev/null 2>&1
+    else
+        osascript -e "display notification \"$(applescript_escape "$2")\" with title \"$(applescript_escape "$1")\" sound name \"Glass\"" \
+            </dev/null >/dev/null 2>&1
+    fi
+}
 
 # Overridable so the test suite never writes to the real user's state.
 STATE_DIR="${CLAUDE_NOTIFY_STATE_DIR:-$HOME/.claude/claude-code-notify}"
 APP="$STATE_DIR/Claude Code.app"
 
-ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
-
-# -group collapses repeat banners from one chat instead of stacking them.
-[ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
-
 # Offer the icon setup once, as a banner rather than on stderr: a hook that
-# exits 0 has its stderr swallowed, so a printed hint would never be seen. The
-# path is filled in from this install, since the script knows where it lives.
+# exits 0 has its stderr swallowed, so a printed hint would never be seen. It
+# copies the npx installer rather than this script's path: the path names this
+# plugin version, whose directory the next update deletes, while the installer
+# always builds from the copy installed at the time.
 # `set -C` makes the marker creation exclusive, so two concurrent hooks cannot
 # both decide they are the first.
 if [ ! -d "$APP" ] && [ -z "${CLAUDE_NOTIFY_STATE_DIR:-}" ]; then
     ICON_HINT="$STATE_DIR/.icon-hint-shown"
     if [ ! -f "$ICON_HINT" ] && mkdir -p "$STATE_DIR" 2>/dev/null; then
         if (set -C; : >"$ICON_HINT") 2>/dev/null; then
-            SETUP_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-macos-icon.sh"
-            printf '%s\n' "$SETUP_PATH" | pbcopy 2>/dev/null
-            terminal-notifier -title "Want the Claude icon on these?" \
-                -message "Setup command copied — paste it into a terminal." \
-                -sound Glass >/dev/null 2>&1 || true
+            printf '%s\n' "npx @anaidenko/claude-notify-resume" | pbcopy 2>/dev/null
+            if [ -n "$HAVE_TN" ]; then
+                plain_banner "Want the Claude icon on these?" \
+                    "Setup command copied — paste it into a terminal."
+            else
+                plain_banner "Want clickable banners?" \
+                    "Setup command copied — paste it into a terminal."
+            fi
         fi
     fi
 fi
@@ -65,7 +75,7 @@ fi
 #
 # The marker file distinguishes a compiled bundle from the older script-only
 # one, which does not understand `post` — that one falls through to -execute
-# and keeps working, just without the icon, until setup is re-run.
+# and keeps working, just without the icon, until the app is rebuilt.
 NOTIFIER_BIN="$APP/Contents/MacOS/claude-notify"
 MARKER="$APP/Contents/Resources/native-notifier"
 if [ -f "$MARKER" ] && [ -x "$NOTIFIER_BIN" ] &&
@@ -92,7 +102,7 @@ if [ -f "$MARKER" ] && [ -x "$NOTIFIER_BIN" ] &&
 
     # An empty marker means a binary built before 1.3.1, which exits 0 whatever
     # macOS answered — a refused post is indistinguishable from a delivered one.
-    # Renew the registration up front instead, until setup is re-run.
+    # Renew the registration up front instead, until the app is rebuilt.
     if [ ! -s "$MARKER" ]; then
         reregister
         post
@@ -111,9 +121,19 @@ if [ -f "$MARKER" ] && [ -x "$NOTIFIER_BIN" ] &&
     # 4 is a choice rather than a fault: a banner from another sender would
     # override it, so nothing routes around it.
     case "$rc" in 0 | 4) exit 0 ;; esac
-    # Still refused, or the binary crashed: fall through to terminal-notifier,
+    # Still refused, or the binary crashed: fall through to the other senders,
     # so a broken bundle costs the icon rather than the banner.
 fi
+
+if [ -z "$HAVE_TN" ]; then
+    plain_banner "$STATUS" "$CHAT"
+    exit 0
+fi
+
+ARGS=(-title "$STATUS" -message "$CHAT" -sound Glass)
+
+# -group collapses repeat banners from one chat instead of stacking them.
+[ "$SESSION_ID" != "-" ] && ARGS+=(-group "claude-$SESSION_ID")
 
 if [ "$SESSION_ID" != "-" ] && [ "$CWD" != "-" ]; then
     # No custom icon, but the whole banner is clickable. The click runs

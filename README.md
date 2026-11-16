@@ -29,36 +29,36 @@ in two ways:
 npx @anaidenko/claude-notify-resume
 ```
 
-This adds the [anaidenko/claude-plugins](https://github.com/anaidenko/claude-plugins)
-marketplace and installs the plugin. If the plugin is already installed, it
-updates it instead. It needs Claude Code and Node.js. Restart Claude Code
-afterwards: hooks are read at startup.
+Restart Claude Code afterwards: hooks are read at startup. To update, run the
+same command again.
+
+- **macOS:** the installer also builds a small app that gives banners the Claude
+  icon and makes them clickable. It needs the Xcode Command Line Tools, and
+  tells you how to get them if they are missing.
+- **Linux:** needs `notify-send` (`sudo apt install libnotify-bin` if it is
+  missing). Banners are not clickable.
 
 <details>
-<summary>The same by hand</summary>
+<summary>What the installer does, and the same by hand</summary>
+
+It adds the [anaidenko/claude-plugins](https://github.com/anaidenko/claude-plugins)
+marketplace, then installs the plugin from there, or updates it. The npm package
+is only the installer. By hand:
 
 ```bash
 claude plugin marketplace add anaidenko/claude-plugins
 claude plugin install claude-notify-resume@anaidenko
 ```
 
-The npm package is only the installer. Either way, the plugin comes from the
-marketplace.
+On macOS it then builds the app from the installed plugin and sends a test
+banner. If macOS asks, allow notifications for **Claude Code**. Without the app,
+banners still arrive: clickable when
+[`terminal-notifier`](https://github.com/julienXX/terminal-notifier) is
+installed, plain otherwise.
+
+Updates can also arrive on their own: `/plugin` → **Marketplaces** → `anaidenko`
+→ enable auto-update.
 </details>
-
-**macOS.** Banners work out of the box. For click-to-resume, also run
-`brew install terminal-notifier`. The first banner then offers an optional
-setup, and copies its command to the clipboard. The setup gives banners the
-Claude icon and needs the Xcode Command Line Tools. If its test banner does not
-appear, open **System Settings → Notifications → Claude Code** and turn on
-*Allow notifications*.
-
-**Linux.** It needs `notify-send`, which desktop distros ship with libnotify
-(`sudo apt install libnotify-bin` if yours does not). Banners have no click
-action on Linux.
-
-**Updates.** Run the installer again, or let them arrive on their own: `/plugin`
-→ **Marketplaces** → `anaidenko` → enable auto-update.
 
 ## What you get notified about
 
@@ -119,7 +119,7 @@ variable, such as `CLAUDE_NOTIFY_MUTE`, which overrides the file.
 
 | Platform | Status |
 | --- | --- |
-| macOS | Supported, in daily use. Click-to-resume with `terminal-notifier`; optional Claude icon |
+| macOS | Supported, in daily use. Click-to-resume and the Claude icon |
 | Linux | Supported, tested on Debian 12 and Ubuntu 24.04. No click action |
 | Windows | Not supported. [PRs welcome](CONTRIBUTING.md#where-help-is-most-useful) |
 
@@ -129,7 +129,7 @@ variable, such as `CLAUDE_NOTIFY_MUTE`, which overrides the file.
 npx @anaidenko/claude-notify-resume --uninstall
 ```
 
-This removes the plugin, its state and the macOS icon app. A config file you
+This removes the plugin, its state and the macOS app. A config file you
 created stays where it is, and the command prints its path.
 
 <details>
