@@ -166,18 +166,22 @@ do not "improve" error handling by surfacing errors to the user.
   pipes close (`… | cat`), never by timing the script's exit — the script exited
   fast in the bug too.
 
-- **The VS Code extension never emits the `Notification` hook event.** `Stop`
-  fires there, so `Replied` banners arrive and the plugin looks healthy — but
+- **The VS Code extension never runs `Notification` hooks, by design.** `Stop`
+  fires there, so `Replied` banners arrive and the plugin looks healthy. But
   `Permission needed`, `Waiting for you` and every other Notification-based
   status cannot fire in a side-panel session, and no hooks.json change will
-  help. Known Claude Code parity bug: anthropics/claude-code #59718, #31285,
-  #26925, #11156. Diagnose it from transcripts, not theories: the machine's
-  `~/.claude/projects/*/*.jsonl` showed `stop_hook_summary` records running
-  `notify.sh "Replied"` while no `Notification` hookEvent existed in any
-  transcript at all. The README states the limitation; keep it there until the
-  upstream bug closes for real (the linked issues close as duplicates, not
-  fixes). Newer Claude Code writes those commands as `command hook N`, so match
-  by hook count and order rather than by name.
+  help. This is not a bug awaiting a fix. Anthropic said in #11156 that it has
+  "no plans to support the Notification hook from the IDE", and closed the
+  canonical #55875 as not planned. `PermissionRequest` hooks *do* run in the
+  extension. **Transcripts cannot diagnose this:** they record no `Notification`
+  hook event even from the CLI, where it does fire. So "absent from every
+  transcript" proves nothing, and that is the signal this entry first rested on.
+  Read the extension's DEBUG log instead:
+  `~/Library/Application Support/Code/logs/<session>/window<N>/exthost/Anthropic.claude-code/Claude VSCode.log`
+  prints `Hooks: <Event> [command hook N] (plugin …)` for every hook it runs.
+  On 2026-11-16, seven days of logs showed thousands of hook runs and not one
+  `Notification`. Newer Claude Code names a hook `command hook N` rather than
+  by its script, so match by plugin and order.
 - **Launch Services can forget the icon bundle, and then every banner is
   refused.** By November 2026 the bundle had dropped out of `lsregister -dump`
   (most likely in the macOS 27.2 update; that part is unproven). It lives in a
