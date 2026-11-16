@@ -1,6 +1,6 @@
 {
     "name": "@anaidenko/claude-notify-resume",
-    "description": "Desktop notifications for Claude Code that name the conversation they came from — and reopen it when clicked.",
+    "description": "Claude Code notifications on your desktop that name the conversation they came from — and reopen it when clicked.",
     "//": "No version field on purpose: .claude-plugin/plugin.json is the single source of truth, and a second copy here would drift. publish.yml injects it at publish time; without it, a stray `npm publish` from a checkout fails.",
     "license": "MIT",
     "author": "Andrii Naidenko",
@@ -15,10 +15,15 @@
         "claude-code-plugin",
         "claude-code-hooks",
         "claude-code-notification",
+        "claude-code-notifications",
         "claude",
+        "notification",
         "notifications",
+        "notify",
         "desktop-notifications",
         "click-to-resume",
+        "vscode",
+        "iterm2",
         "macos",
         "linux"
     ],
