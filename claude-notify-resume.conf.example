@@ -8,8 +8,12 @@
 # takes precedence over this file.
 
 # Statuses to drop, comma-separated. Case and spaces around commas don't matter.
-# Valid names: Replied, Permission needed, Waiting for you, Input needed,
-#              Background agent needs you, Background agent finished
+# Valid names: Replied, Permission needed, Question for you, Plan ready,
+#              Waiting for you, Input needed, Background agent needs you,
+#              Background agent finished
+#
+# `Question for you` and `Plan ready` are muted separately from `Permission
+# needed`, even though all three come from the same permission dialog.
 #
 # `Replied` fires on every reply — useful when you have walked away, noisy when
 # you are watching the chat.

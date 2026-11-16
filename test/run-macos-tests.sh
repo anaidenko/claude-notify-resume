@@ -99,6 +99,49 @@ FIELDS="$(printf '{"session_id":"s1","transcript_path":"%s","cwd":"%s"}' "$RENAM
     node "$REPO_ROOT/scripts/notify-parse.js")"
 check "custom-title beats a later ai-title" "Geofence: the rename" "$(printf '%s\n' "$FIELDS" | sed -n 4p)"
 
+# The fifth line names the tool a dialog is waiting on: the last tool_use, if no
+# tool_result answers it yet. A question and a plan both arrive as
+# `permission_prompt` with no tool name in the payload, so this is the only way
+# to tell them from a real permission request. Records copy the real shape: one
+# content block per record, compact JSON.
+PENDING_TRANSCRIPT="$STUB_BIN/pending.jsonl"
+ASK_USE='{"type":"assistant","message":{"id":"msg_1","role":"assistant","content":[{"type":"tool_use","id":"toolu_ask","name":"AskUserQuestion","input":{"questions":[]}}]},"sessionId":"s1"}'
+ASK_RESULT='{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_ask","content":"Blue"}]},"sessionId":"s1"}'
+PLAN_USE='{"type":"assistant","message":{"id":"msg_2","role":"assistant","content":[{"type":"tool_use","id":"toolu_plan","name":"ExitPlanMode","input":{"plan":"x"}}]},"sessionId":"s1"}'
+BASH_USE='{"type":"assistant","message":{"id":"msg_3","role":"assistant","content":[{"type":"tool_use","id":"toolu_bash","name":"Bash","input":{"command":"ls"}}]},"sessionId":"s1"}'
+TEXT_REPLY='{"type":"assistant","message":{"id":"msg_4","role":"assistant","content":[{"type":"text","text":"Done."}]},"sessionId":"s1"}'
+TITLE_RECORD='{"type":"ai-title","aiTitle":"Fix the geofence rounding bug","sessionId":"s1"}'
+
+# write_pending <record>...: the transcript the pending-tool checks read.
+write_pending() {
+    printf '%s\n' "$@" >"$PENDING_TRANSCRIPT"
+}
+
+pending_payload() {
+    printf '{"session_id":"s1","transcript_path":"%s","cwd":"%s"}' "${1:-$PENDING_TRANSCRIPT}" "$REPO_ROOT"
+}
+
+pending_tool() {
+    pending_payload "${1:-}" | node "$REPO_ROOT/scripts/notify-parse.js" | sed -n 5p
+}
+
+write_pending "$TITLE_RECORD" "$ASK_USE"
+check "pending tool: an unanswered question" "AskUserQuestion" "$(pending_tool)"
+write_pending "$TITLE_RECORD" "$ASK_USE" "$ASK_RESULT" "$TEXT_REPLY"
+check "pending tool: an answered question is not pending" "" "$(pending_tool)"
+write_pending "$ASK_USE" "$ASK_RESULT" "$BASH_USE"
+check "pending tool: the last call wins" "Bash" "$(pending_tool)"
+write_pending "$TITLE_RECORD" "$TEXT_REPLY"
+check "pending tool: none without a tool_use" "" "$(pending_tool)"
+# A half-written line holding "tool_result" must be skipped, not end the scan:
+# had it thrown, the catch would have cleared the line.
+write_pending "$ASK_USE" '{"type":"user","message":{"content":[{"type":"tool_result","tool_use'
+check "pending tool: an unparsable line is skipped" "AskUserQuestion" "$(pending_tool)"
+check "pending tool: a missing transcript gives none" "" "$(pending_tool /nonexistent/transcript.jsonl)"
+write_pending "$TITLE_RECORD" "$ASK_USE"
+check "pending tool: the title line is unchanged" "Fix the geofence rounding bug" \
+    "$(pending_payload | node "$REPO_ROOT/scripts/notify-parse.js" | sed -n 4p)"
+
 printf '\nDispatch\n'
 
 SENT="$(capture "$REPO_ROOT/scripts/notify-macos.sh" "Replied" "Fix the geofence rounding bug" "s1" "$REPO_ROOT")"
@@ -457,6 +500,58 @@ mute_probe "spaces around commas"        "Replied, Waiting for you" "Waiting for
 mute_probe "later entry also matches"    "Input needed,Replied"     "Replied"           "muted"
 mute_probe "empty list mutes nothing"    ""                         "Replied"           "sent"
 mute_probe "partial word does not match" "Repl"                     "Replied"           "sent"
+
+printf '\nQuestion and plan\n'
+
+# `Permission needed` is refined by the pending tool, and only that status: the
+# others never wait on a dialog. The mute list is checked against the final
+# status, so muting the generic one does not swallow a question, and the reverse.
+# refine_probe <status> [env assignments...]: prints what was sent, and leaves
+# the exit status in REFINE_RC.
+refine_probe() {
+    local status="$1"
+    shift
+    : >"$STUB_LOG"
+    pending_payload | env CLAUDE_NOTIFY_BIN="$STUB_BIN" CLAUDE_NOTIFY_STATE_DIR="$STUB_BIN/state" \
+        "$@" "$REPO_ROOT/scripts/notify.sh" "$status" >/dev/null 2>&1
+    REFINE_RC=$?
+}
+
+sent_or_muted() {
+    if [ -s "$STUB_LOG" ]; then printf 'sent'; else printf 'muted'; fi
+}
+
+write_pending "$TITLE_RECORD" "$ASK_USE"
+refine_probe "Permission needed"
+contains "a pending question becomes Question for you" "-title Question for you " "$(cat "$STUB_LOG")"
+write_pending "$TITLE_RECORD" "$PLAN_USE"
+refine_probe "Permission needed"
+contains "a pending plan becomes Plan ready" "-title Plan ready " "$(cat "$STUB_LOG")"
+write_pending "$TITLE_RECORD" "$ASK_USE" "$ASK_RESULT"
+refine_probe "Permission needed"
+contains "an answered question stays Permission needed" "-title Permission needed " "$(cat "$STUB_LOG")"
+write_pending "$TITLE_RECORD" "$ASK_USE"
+refine_probe "Replied"
+contains "Replied is never refined" "-title Replied " "$(cat "$STUB_LOG")"
+
+refine_probe "Permission needed" CLAUDE_NOTIFY_MUTE="Permission needed"
+check "muting Permission needed keeps the question" "sent" "$(sent_or_muted)"
+refine_probe "Permission needed" CLAUDE_NOTIFY_MUTE="question for you"
+check "muting Question for you mutes it" "muted" "$(sent_or_muted)"
+write_pending "$TITLE_RECORD" "$BASH_USE"
+refine_probe "Permission needed" CLAUDE_NOTIFY_MUTE="Permission needed"
+check "muting Permission needed still mutes a Bash dialog" "muted" "$(sent_or_muted)"
+
+# The marker goes on after refinement: before it, the status no longer equals
+# "Permission needed" and the question would go out under the generic title.
+write_pending "$TITLE_RECORD" "$ASK_USE"
+refine_probe "Permission needed" CLAUDE_NOTIFY_TEST=1
+contains "the test marker wraps the refined status" "-title TEST · Question for you " "$(cat "$STUB_LOG")"
+
+printf 'garbage\n{"type":"assistant","message":{"content":[{"type":"tool_use"\n\001\n' >"$PENDING_TRANSCRIPT"
+refine_probe "Permission needed"
+check "exit 0 on a malformed transcript" "0" "$REFINE_RC"
+contains "a malformed transcript keeps Permission needed" "-title Permission needed " "$(cat "$STUB_LOG")"
 
 printf '\nConfig file\n'
 

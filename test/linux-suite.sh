@@ -75,6 +75,31 @@ check "missing transcript → empty title" "" "$(printf '%s\n' "$FIELDS" | sed -
 FIELDS="$(printf 'not json' | node "$PLUGIN_ROOT/scripts/notify-parse.js")"
 check "malformed payload → placeholders" "-" "$(printf '%s\n' "$FIELDS" | sed -n 1p)"
 
+# The fifth line names the tool a dialog is waiting on: the last tool_use, if no
+# tool_result answers it yet. A question and a plan both arrive as
+# `permission_prompt` with no tool name in the payload, so this is the only way
+# to tell them from a real permission request.
+PENDING=/tmp/pending-transcript.jsonl
+ASK_USE='{"type":"assistant","message":{"id":"msg_1","role":"assistant","content":[{"type":"tool_use","id":"toolu_ask","name":"AskUserQuestion","input":{"questions":[]}}]},"sessionId":"s1"}'
+ASK_RESULT='{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_ask","content":"Blue"}]},"sessionId":"s1"}'
+BASH_USE='{"type":"assistant","message":{"id":"msg_3","role":"assistant","content":[{"type":"tool_use","id":"toolu_bash","name":"Bash","input":{"command":"ls"}}]},"sessionId":"s1"}'
+TEXT_REPLY='{"type":"assistant","message":{"id":"msg_4","role":"assistant","content":[{"type":"text","text":"Done."}]},"sessionId":"s1"}'
+
+pending_tool() {
+    printf '%s\n' "$@" >"$PENDING"
+    payload "$PENDING" | node "$PLUGIN_ROOT/scripts/notify-parse.js" | sed -n 5p
+}
+
+check "pending tool: an unanswered question" "AskUserQuestion" "$(pending_tool "$ASK_USE")"
+check "pending tool: an answered question is not pending" "" \
+    "$(pending_tool "$ASK_USE" "$ASK_RESULT" "$TEXT_REPLY")"
+check "pending tool: the last call wins" "Bash" "$(pending_tool "$ASK_USE" "$ASK_RESULT" "$BASH_USE")"
+check "pending tool: none without a tool_use" "" "$(pending_tool "$TEXT_REPLY")"
+check "pending tool: an unparsable line is skipped" "AskUserQuestion" \
+    "$(pending_tool "$ASK_USE" '{"type":"user","message":{"content":[{"type":"tool_result","tool_use')"
+check "pending tool: a missing transcript gives none" "" \
+    "$(payload /nonexistent.jsonl | node "$PLUGIN_ROOT/scripts/notify-parse.js" | sed -n 5p)"
+
 printf '\nDispatch\n'
 
 payload "$TRANSCRIPT" | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Replied" >/dev/null 2>&1
@@ -125,6 +150,23 @@ case "$ARGS" in
     *)
         printf '  FAIL  icon path missing or wrong\n        expected: --icon %s/assets/claude-logo.png\n        actual:   %s\n' \
             "$PLUGIN_ROOT" "$ARGS"
+        FAIL=$((FAIL + 1))
+        ;;
+esac
+
+# The refinement lives in notify.sh, shared by both platforms: a pending
+# question must reach notify-send under its own title.
+printf '%s\n' "$ASK_USE" >"$PENDING"
+: >"$STUB_LOG"
+payload "$PENDING" | env CLAUDE_NOTIFY_BIN="$STUB_BIN" "$PLUGIN_ROOT/scripts/notify.sh" "Permission needed" >/dev/null 2>&1
+ARGS="$(cat "$STUB_LOG")"
+case "$ARGS" in
+    *"Question for you"*)
+        printf '  ok    a pending question reaches notify-send as Question for you\n'
+        PASS=$((PASS + 1))
+        ;;
+    *)
+        printf '  FAIL  a pending question was not refined\n        actual: %s\n' "$ARGS"
         FAIL=$((FAIL + 1))
         ;;
 esac

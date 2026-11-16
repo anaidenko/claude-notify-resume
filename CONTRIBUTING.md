@@ -41,6 +41,14 @@ the transcript. A manual rename (a `custom-title` record) wins over the
 AI-generated `ai-title`. Neither record is a documented API; if both disappear,
 the banner falls back to the project directory name.
 
+The transcript also names the dialog. A question (`AskUserQuestion`) and a plan
+awaiting approval (`ExitPlanMode`) arrive as the same `permission_prompt` as any
+tool approval, with no tool name in the payload. So the parser also reports the
+last `tool_use` that no `tool_result` answers yet, and `notify.sh` turns
+`Permission needed` into `Question for you` or `Plan ready` from it. Anything
+else, such as a dialog for one of several parallel calls, keeps the generic
+status.
+
 On macOS the banner's icon comes from the **posting application**:
 `terminal-notifier`'s `-appIcon` / `-contentImage` do not reach that slot. So
 `setup-macos-icon.sh` compiles a small real app, `scripts/claude-notify.swift`,
@@ -56,7 +64,7 @@ type its path. `notify-macos.sh` tries senders best first: the app, then
 | --- | --- |
 | `hooks/hooks.json` | Declares the `Stop` / `Notification` hooks |
 | `scripts/notify.sh` | Parses the payload, resolves the chat name and host app, dispatches per platform |
-| `scripts/notify-parse.js` | Reads the payload and the chat title from the transcript |
+| `scripts/notify-parse.js` | Reads the payload, and the chat title and pending tool from the transcript |
 | `scripts/notify-macos.sh` / `notify-linux.sh` | Build and send the banner |
 | `scripts/open-session.sh` | Reopens a session when a banner is clicked |
 | `scripts/load-config.sh` | Reads the config file, letting the environment win |

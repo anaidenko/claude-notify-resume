@@ -66,6 +66,8 @@ Updates can also arrive on their own: `/plugin` → **Marketplaces** → `anaide
 | --- | --- |
 | `Replied` | Claude finished responding: every turn, *not* "task complete" |
 | `Permission needed` | A tool call is waiting for your approval |
+| `Question for you` | Claude asked you a question and is waiting for the answer |
+| `Plan ready` | Claude finished a plan and is waiting for you to approve it |
 | `Waiting for you` | Claude is idle, awaiting your next prompt |
 | `Input needed` | An MCP server opened an elicitation form |
 | `Background agent needs you` / `finished` | A background session wants input, or ended |

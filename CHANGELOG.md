@@ -14,6 +14,13 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
   Nobody has to find `setup-macos-icon.sh` in the plugin cache any more. If the
   Xcode Command Line Tools are missing, the installer says how to get them.
 
+- Two new statuses take over from `Permission needed` when the dialog is not
+  really a permission request: `Question for you` when Claude asks you
+  something, and `Plan ready` when a plan is waiting for your approval. Both
+  used to arrive as `Permission needed`. Each one is muted on its own, so
+  `MUTE=Permission needed` no longer silences questions or plans. To mute
+  those, list `Question for you` or `Plan ready` as well.
+
 ### Changed
 
 - `terminal-notifier` is no longer needed on macOS once the notifier app is

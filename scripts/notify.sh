@@ -23,24 +23,26 @@ STATUS="${1:-Claude Code}"
 # Matching ignores case and surrounding spaces, because this list is written by
 # hand. Matching the bare status (not the TEST · form) keeps a muted status muted
 # while debugging.
-if [ -n "${CLAUDE_NOTIFY_MUTE:-}" ]; then
-    mute_probe="$(printf '%s' "$STATUS" | tr '[:upper:]' '[:lower:]')"
-    IFS=','
+is_muted() {
+    [ -n "${CLAUDE_NOTIFY_MUTE:-}" ] || return 1
+    local probe muted
+    probe="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    local IFS=','
     for muted in $CLAUDE_NOTIFY_MUTE; do
         # Trim: "a, b" must match " b" as well as "b".
         muted="$(printf '%s' "$muted" | tr '[:upper:]' '[:lower:]' |
             sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-        [ -n "$muted" ] && [ "$muted" = "$mute_probe" ] && exit 0
+        [ -n "$muted" ] && [ "$muted" = "$probe" ] && return 0
     done
-    unset IFS
-fi
+    return 1
+}
 
-# Set CLAUDE_NOTIFY_TEST=1 to mark a banner as a manual test, so a real
-# notification is never mistaken for one while debugging.
-#
-# No brackets in the marker: a -title beginning with "[" is swallowed by
-# terminal-notifier, which then falls back to its default title of "Terminal".
-[ "${CLAUDE_NOTIFY_TEST:-}" = "1" ] && STATUS="TEST · $STATUS"
+# "Permission needed" is the one exception: it may still turn into "Question
+# for you" or "Plan ready" once the transcript is read below, and muting one of
+# those must not swallow the others. So it is checked after refinement instead.
+if [ "$STATUS" != "Permission needed" ] && is_muted "$STATUS"; then
+    exit 0
+fi
 
 # Hooks inherit a minimal PATH with neither Homebrew nor nvm on it, so `node`
 # and the notifier binary are both missing unless they are added back. Without
@@ -77,6 +79,28 @@ FIELDS="$("$NODE_BIN" "$PARSER" 2>/dev/null)"
 SESSION_ID="$(printf '%s\n' "$FIELDS" | sed -n 1p)"
 CWD="$(printf '%s\n' "$FIELDS" | sed -n 3p)"
 CHAT="$(printf '%s\n' "$FIELDS" | sed -n 4p)"
+PENDING_TOOL="$(printf '%s\n' "$FIELDS" | sed -n 5p)"
+
+# Claude asking a question and a finished plan awaiting approval both arrive as
+# `permission_prompt`, in the CLI and VS Code alike, so both used to read
+# "Permission needed". The payload carries no tool name, and its message text
+# differs by host, so the parser reads the pending call from the transcript.
+# Anything it cannot name keeps the generic status.
+if [ "$STATUS" = "Permission needed" ]; then
+    case "$PENDING_TOOL" in
+        AskUserQuestion) STATUS="Question for you" ;;
+        ExitPlanMode) STATUS="Plan ready" ;;
+    esac
+    is_muted "$STATUS" && exit 0
+fi
+
+# Set CLAUDE_NOTIFY_TEST=1 to mark a banner as a manual test, so a real
+# notification is never mistaken for one while debugging. Applied only now, so
+# that the refinement above and the mute list both see the bare status.
+#
+# No brackets in the marker: a -title beginning with "[" is swallowed by
+# terminal-notifier, which then falls back to its default title of "Terminal".
+[ "${CLAUDE_NOTIFY_TEST:-}" = "1" ] && STATUS="TEST · $STATUS"
 
 # `ai-title` is an internal transcript record, not a documented contract — fall
 # back to the project directory if a future version stops emitting it.
