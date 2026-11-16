@@ -154,11 +154,23 @@ terminal, then check the result yourself with `npm view`.
    The rc is built from the pre-bump tree. Its `plugin.json` still says the
    previous version, and its CHANGELOG has no `X.Y.Z` section. That is
    harmless, since npm does not deliver the plugin. Leave it as it is.
+
+   **Expect a placeholder first.** npm answers "Your package is being
+   processed", and for about 2 minutes `npm view … versions` lists only
+   `0.0.0-stage`, tagged `latest`. That happens even with a plain
+   `npm publish`, and the placeholder stays in the version list for good. It
+   is not a staged publish waiting for approval (`npx npm@11 stage list`
+   shows nothing). Wait until the rc is listed, then have the user run
+   `npm deprecate @anaidenko/claude-notify-resume@0.0.0-stage "registry placeholder"`.
+   The trusted publisher's 2-day clock should not start before the rc is
+   visible.
 3. The user creates the trusted publisher. Make sure `publish.yml` is on
    `origin/main`: npm checks that the file exists.
    - **Default, on the website:** npmjs.com → package → Settings → Trusted
      publishing → GitHub Actions. User `anaidenko`, repository
      `claude-notify-resume`, workflow `publish.yml`, allow `npm publish`.
+     Publishing access "Require two-factor authentication and disallow
+     tokens" is compatible: the 1.4.0 CI publish went through with it set.
    - **From the CLI,** which needs npm 11 and also asks for a 2FA code. Check
      the flags with `npx npm@11 trust github --help` first:
      `npx npm@11 trust github @anaidenko/claude-notify-resume --file publish.yml --repo anaidenko/claude-notify-resume --allow-publish`
