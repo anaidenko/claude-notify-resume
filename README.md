@@ -1,10 +1,14 @@
 # claude-notify-resume
 
+[![npm](https://img.shields.io/npm/v/@anaidenko/claude-notify-resume)](https://www.npmjs.com/package/@anaidenko/claude-notify-resume)
+[![npm downloads](https://img.shields.io/npm/dm/@anaidenko/claude-notify-resume)](https://www.npmjs.com/package/@anaidenko/claude-notify-resume)
+[![CI](https://github.com/anaidenko/claude-notify-resume/actions/workflows/ci.yml/badge.svg)](https://github.com/anaidenko/claude-notify-resume/actions/workflows/ci.yml)
+
 Desktop notifications for [Claude Code](https://claude.com/claude-code) that
 tell you **which conversation** replied — or is waiting on you — and take you
 back into it.
 
-<img src="assets/banner-replied.png" alt="A macOS notification titled &quot;Replied&quot;, with the body &quot;Fix the geofence rounding bug&quot; — the name of the chat that finished." width="500">
+<img src="https://raw.githubusercontent.com/anaidenko/claude-notify-resume/main/assets/banner-replied.png" alt="A macOS notification titled &quot;Replied&quot;, with the body &quot;Fix the geofence rounding bug&quot; — the name of the chat that finished." width="500">
 
 *The body is the chat's own name, so you know which session it is.
 (Click it to resume — see [where the session reopens](#where-the-session-reopens).)*
@@ -56,6 +60,18 @@ Terminal sessions get all of them.
 ## Install
 
 ```bash
+npx @anaidenko/claude-notify-resume
+```
+
+That adds the marketplace and installs the plugin, or updates it if it is
+already installed. It needs Claude Code and Node.js, which the plugin uses
+anyway. The npm package is only the installer: the plugin itself still comes
+from the marketplace, so every install updates the same way, however it
+started.
+
+By hand, it is two commands:
+
+```bash
 claude plugin marketplace add anaidenko/claude-plugins
 claude plugin install claude-notify-resume@anaidenko
 ```
@@ -75,7 +91,8 @@ auto-update once and new versions arrive on their own: `/plugin` → **Marketpla
 → select `anaidenko` → enable auto-update. Claude Code then refreshes shortly
 after a session starts and prompts you to `/reload-plugins`.
 
-Without it, updating is two commands:
+Without it, run the installer again (`npx @anaidenko/claude-notify-resume`),
+or update by hand:
 
 ```bash
 claude plugin marketplace update anaidenko
@@ -258,6 +275,7 @@ everything below is either already on the machine or optional.
 | Linux | `notify-send` / libnotify, D-Bus |
 | Testing | Docker (Debian, Ubuntu), stubbed binaries, a real D-Bus + notification-daemon harness |
 | Tooling | shellcheck, npm scripts as the entry point |
+| Distribution | Claude Code marketplace (git); npm for the `npx` installer, published from CI via Trusted Publishing |
 
 ## Contributing
 

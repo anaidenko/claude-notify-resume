@@ -1,7 +1,8 @@
 # Contributing
 
 Bug reports and patches are welcome. The project is small on purpose — bash
-plus one Node file, no dependencies, no build step.
+plus two Node files (the hook's transcript parser and the `npx` installer), no
+dependencies, no build step.
 
 ## Running the tests
 
@@ -91,16 +92,47 @@ Claude Code caches an installed plugin in a directory named after its version,
 so **bumping `version` in `.claude-plugin/plugin.json` is what makes an update
 reachable** — push alone leaves existing installs on the cached copy.
 
+In Claude Code, `/release` walks through all of it (see
+[.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md)) and asks
+before it pushes. By hand:
+
 1. Bump `version` in `.claude-plugin/plugin.json` (semver).
-2. Commit, tag, and push both together:
-   `git tag -a v1.1.0 -m "…" && git push --follow-tags`.
+2. Turn `## Unreleased` in `CHANGELOG.md` into `## X.Y.Z — YYYY-MM-DD`.
+3. Commit as `docs: Release X.Y.Z — <summary>`, tag with the same subject, and
+   push both together:
+   `git tag -a vX.Y.Z -m "X.Y.Z — <summary>" && git push --follow-tags`.
    (`git push --tags` pushes *only* tags, which leaves the tag on GitHub pointing
    at a commit that is not there yet.)
-3. Users on auto-update get it automatically; others run
+4. The tag runs [publish.yml](.github/workflows/publish.yml). It checks the tag
+   against `plugin.json`, publishes to npm, then creates the GitHub Release.
+   The Release is titled with the tag's subject, and its notes are the CHANGELOG
+   section.
+5. Users on auto-update get it automatically; others run
+   `npx @anaidenko/claude-notify-resume` again, or
    `claude plugin marketplace update anaidenko && claude plugin update claude-notify-resume@anaidenko`.
 
 That field is the only place a version lives — `package.json` deliberately has
-none, so the two cannot drift.
+none, so the two cannot drift. `publish.yml` injects it at publish time.
+
+### npm
+
+The package [`@anaidenko/claude-notify-resume`](https://www.npmjs.com/package/@anaidenko/claude-notify-resume)
+carries the `npx` installer. Installed copies still come from the marketplace,
+never from npm.
+
+- **No token anywhere.** CI publishes through npm Trusted Publishing (OIDC).
+  The trusted publisher on npmjs.com names the workflow file, so renaming
+  `publish.yml` breaks publishing until the npm side is set up again.
+- **The very first npm release is different.** A trusted publisher can only be
+  configured for a package that already exists, and a new one expires 2 days
+  after creation unless a publish succeeds through it. See *First publish* in
+  the release skill.
+- **A failed publish job is re-run, never re-tagged.** Fix the cause, then run
+  `gh run rerun <id> --failed`. The job skips a version npm already has, so
+  re-runs are safe.
+- **Never `npm unpublish`.** It works only within 72 hours, and a version number
+  can never be reused. To retract a bad release, `npm deprecate` it and ship a
+  fix.
 
 ### The marketplace
 

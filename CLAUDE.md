@@ -231,6 +231,13 @@ For anything larger than a one-file edit, `/plan-task` writes a structured plan 
 [.claude/skills/plan-task/SKILL.md](.claude/skills/plan-task/SKILL.md). Plans are
 gitignored personal working documents; commit one only when asked.
 
+## Releasing
+
+`/release` ([.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md))
+cuts a version and asks before the push. The tag then publishes to npm and
+creates the GitHub Release through `publish.yml`. An npm version is permanent:
+never `npm unpublish`, never move a tag npm already has.
+
 ## Platform reality
 
 macOS is the developed and daily-used path. Linux is covered by the container

@@ -4,7 +4,25 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-## 1.3.3
+## Unreleased
+
+### Added
+
+- One command installs the plugin: `npx @anaidenko/claude-notify-resume`. It
+  adds the marketplace and installs the plugin, or updates it if it is already
+  installed. The plugin itself still comes from the marketplace, so an install
+  made this way updates like any other.
+
+    If an older install left a marketplace named `anaidenko` that points
+    somewhere else, the installer leaves it alone and prints the two commands
+    that replace it.
+
+- The plugin is now on npm as
+  [`@anaidenko/claude-notify-resume`](https://www.npmjs.com/package/@anaidenko/claude-notify-resume).
+  Every release is published from CI with npm provenance, and gets a GitHub
+  Release.
+
+## 1.3.3 — 2026-11-14
 
 ### Changed
 
@@ -24,7 +42,7 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
     before. A CLI session in VS Code's integrated terminal, and VS Code
     Insiders, still resume in a terminal.
 
-## 1.3.2
+## 1.3.2 — 2026-11-14
 
 ### Fixed
 
@@ -44,7 +62,7 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
     Terminal unless `TERMINAL=iTerm` is set in
     `~/.claude/claude-notify-resume.conf`.
 
-## 1.3.1
+## 1.3.1 — 2026-11-14
 
 ### Fixed
 
@@ -65,7 +83,7 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
     the hook renews the registration before every banner. That covers the same
     failure, but without the `terminal-notifier` fallback.
 
-## 1.3.0
+## 1.3.0 — 2026-08-26
 
 ### Changed
 
@@ -93,7 +111,7 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
     The hooks also carry an explicit 10s timeout now, as a second line of
     defence rather than the fix.
 
-## 1.2.1
+## 1.2.1 — 2026-08-07
 
 ### Fixed
 
@@ -108,7 +126,7 @@ reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
     every turn, behind each `custom-title`. The rename now wins by record type
     rather than by position in the file.
 
-## 1.2.0
+## 1.2.0 — 2026-07-30
 
 Clicking a banner reopens the conversation it came from — reliably, and with
 the Claude icon on the banner. Both were true on paper in 1.1.0; getting them
@@ -309,7 +327,7 @@ No functional change — the plugin behaves exactly as 1.1.0.
 - A vanished session folder is reported instead of opening a terminal on a bare
   `cd` failure.
 
-## 1.0.0
+## 1.0.0 — 2026-07-30
 
 First release.
 
