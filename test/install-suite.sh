@@ -88,6 +88,7 @@ check "fresh machine: adds the marketplace, then installs" \
     "$CALLS"
 check "fresh machine: exits 0" "0" "$CODE"
 contains "fresh machine: says to restart" "Restart Claude Code" "$OUT"
+contains "fresh machine: says it installed" "Installed claude-notify-resume@anaidenko" "$OUT"
 
 run STUB_MARKETPLACES="$OURS_GITHUB" STUB_PLUGINS="$OTHER_PLUGIN"
 check "our marketplace present: refreshes it instead of adding" \
@@ -101,8 +102,7 @@ run STUB_MARKETPLACES="$OURS_GITHUB" STUB_PLUGINS="$INSTALLED"
 check "already installed: updates instead of installing" \
     "plugin marketplace list --json | plugin marketplace update anaidenko | plugin list --json | plugin update claude-notify-resume@anaidenko" \
     "$CALLS"
-contains "already installed: reports an update" "Updated claude-notify-resume@anaidenko" "$OUT"
-
+contains "already installed: says it is up to date" "claude-notify-resume@anaidenko is installed and up to date" "$OUT"
 # The guard that protects a user's setup: a stray "anaidenko" marketplace
 # (early installs pointed it at the plugin's own repo) must be left alone.
 run STUB_MARKETPLACES="$FOREIGN"

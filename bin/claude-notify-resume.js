@@ -139,7 +139,10 @@ function main() {
     if (process.platform === 'linux' && !onPath('notify-send')) {
         next.push('Banners need notify-send: sudo apt install libnotify-bin (or your distro\'s package)');
     }
-    process.stdout.write(`\n${installed ? 'Updated' : 'Installed'} ${PLUGIN_ID}.\n` +
+    // `claude plugin update` succeeds whether or not there was anything newer,
+    // so claim only what is true either way.
+    const done = installed ? `${PLUGIN_ID} is installed and up to date.` : `Installed ${PLUGIN_ID}.`;
+    process.stdout.write(`\n${done}\n` +
         next.map(line => `  - ${line}`).join('\n') + `\n\nMore: ${README}\n`);
 }
 
