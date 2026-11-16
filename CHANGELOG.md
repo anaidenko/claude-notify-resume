@@ -4,7 +4,7 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-## Unreleased
+## 1.6.0 — 2026-11-16
 
 ### Added
 
