@@ -103,9 +103,10 @@ jobs:
 
           # The CHANGELOG section for this version: from its "## X.Y.Z" heading
           # to the next "## ".
+          # Leading blank lines are dropped, or the notes open with a double gap.
           SECTION="$(awk -v v="$VERSION" '
             /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
-            found' CHANGELOG.md)"
+            found' CHANGELOG.md | sed '/./,$!d')"
           if [ -z "$SECTION" ]; then
             echo "::warning::CHANGELOG.md has no section for $VERSION"
             SECTION="See [CHANGELOG.md](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/CHANGELOG.md)."
