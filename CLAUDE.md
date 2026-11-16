@@ -195,6 +195,12 @@ do not "improve" error handling by surfacing errors to the user.
   because in zsh `log` is a builtin that fails silently behind `2>/dev/null`; and
   `notify.sh` missing from the transcripts proves nothing, because of the
   `command hook N` masking above.
+- **`npx <this package>` inside this repo fails with `command not found`.** npx
+  sees that the current project *is* `@anaidenko/claude-notify-resume`, so it
+  looks for the bin in the local `node_modules/.bin`, which is empty, instead of
+  fetching from the registry. Users are unaffected. Try the published installer
+  from another directory, or with an explicit version
+  (`npx @anaidenko/claude-notify-resume@1.4.0`), which always fetches.
 
 ## Keeping this file honest
 
