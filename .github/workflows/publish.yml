@@ -7,6 +7,9 @@ name: Publish
 # npm authenticates through Trusted Publishing (OIDC): no token is stored in this
 # repo. The trusted publisher on npmjs.com names this file, so renaming it breaks
 # publishing until the npm side is reconfigured.
+#
+# Shared with the other anaidenko plugin repos; it reads every name from
+# package.json and .claude-plugin/plugin.json, so keep the copies identical.
 
 on:
   push:
@@ -96,16 +99,17 @@ jobs:
           git fetch --force --depth=1 origin "refs/tags/$TAG:refs/tags/$TAG"
           SUBJECT="$(git tag -l --format='%(contents:subject)' "$TAG")"
           case "$SUBJECT" in
+            "v$VERSION"*) TITLE="$SUBJECT" ;;
             "$VERSION"*) TITLE="v$SUBJECT" ;;
             "") TITLE="$TAG" ;;
             *) TITLE="$TAG — $SUBJECT" ;;
           esac
 
-          # The CHANGELOG section for this version: from its "## X.Y.Z" heading
-          # to the next "## ".
+          # The CHANGELOG section for this version: from its heading, written
+          # "## 1.4.0 — date" or "## [1.4.0] — date", to the next "## ".
           # Leading blank lines are dropped, or the notes open with a double gap.
           SECTION="$(awk -v v="$VERSION" '
-            /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
+            /^## / { if (found) exit; h = $2; gsub(/[][]/, "", h); if (h == v) { found = 1; next } }
             found' CHANGELOG.md | sed '/./,$!d')"
           if [ -z "$SECTION" ]; then
             echo "::warning::CHANGELOG.md has no section for $VERSION"
@@ -113,8 +117,9 @@ jobs:
           fi
 
           NAME="$(node -p "require('./package.json').name")"
+          DESCRIPTION="$(node -p "require('./package.json').description")"
           {
-            echo "Desktop notifications for Claude Code that name the conversation they came from, and reopen it when you click them."
+            echo "$DESCRIPTION"
             echo
             printf '%s\n' "$SECTION"
             echo
