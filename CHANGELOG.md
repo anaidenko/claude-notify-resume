@@ -4,6 +4,15 @@ Notable changes to this plugin. Versions follow [semver](https://semver.org);
 the `version` field in `.claude-plugin/plugin.json` is what makes an update
 reachable to installed copies (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+## 1.6.1 — 2026-11-17
+
+### Changed
+
+- The npm description now opens with "Claude Code notifications", and the
+  keywords add the singular and verb forms and the hosts the click supports,
+  so the package turns up when people search npm for those words. The plugin
+  itself is unchanged: updating is optional.
+
 ## 1.6.0 — 2026-11-16
 
 ### Added
